@@ -1,0 +1,401 @@
+---
+interface Props {
+  text?: string;
+  particleSize?: number;
+  density?: number;
+  color?: string;
+  highlightColor?: string;
+  scatter?: number;
+  gatherDuration?: number;
+  stagger?: number;
+  pointerRepel?: boolean;
+  repelRadius?: number;
+  idleDrift?: number;
+  fontSize?: string;
+  fontWeight?: number | string;
+  fontFamily?: string;
+  glow?: boolean;
+  class?: string;
+}
+
+const {
+  text = 'Hang的博客',
+  particleSize = 1.45,
+  density = 1.25,
+  color = '#eef2f5',
+  highlightColor = '#d8b4fe',
+  scatter = 78,
+  gatherDuration = 1200,
+  stagger = 260,
+  pointerRepel = true,
+  repelRadius = 96,
+  idleDrift = 0.75,
+  fontSize = 'clamp(4.2rem, 11vw, 8.6rem)',
+  fontWeight = 900,
+  fontFamily = 'var(--font-display)',
+  glow = true,
+  class: className = ''
+} = Astro.props;
+
+const rootStyle = [
+  `--particle-title-font-size:${fontSize}`,
+  `--particle-title-font-weight:${fontWeight}`,
+  `--particle-title-font-family:${fontFamily}`,
+  `--particle-title-color:${color}`,
+  `--particle-title-highlight:${highlightColor}`
+].join(';');
+---
+
+<div
+  class:list={['particle-title', className]}
+  data-particle-text
+  data-text={text}
+  data-particle-size={particleSize}
+  data-density={density}
+  data-color={color}
+  data-highlight-color={highlightColor}
+  data-scatter={scatter}
+  data-gather-duration={gatherDuration}
+  data-stagger={stagger}
+  data-pointer-repel={String(pointerRepel)}
+  data-repel-radius={repelRadius}
+  data-idle-drift={idleDrift}
+  data-glow={String(glow)}
+  style={rootStyle}
+>
+  <h1 class="particle-title__label">{text}</h1>
+  <canvas aria-hidden="true"></canvas>
+</div>
+
+<script is:inline>
+  (() => {
+    const roots = document.querySelectorAll('[data-particle-text]');
+    if (!roots.length) return;
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+    const mix = (from, to, amount) => from + (to - from) * amount;
+    const easeOutCubic = (value) => 1 - Math.pow(1 - value, 3);
+
+    roots.forEach((root) => {
+      const canvas = root.querySelector('canvas');
+      const ctx = canvas instanceof HTMLCanvasElement ? canvas.getContext('2d') : null;
+      if (!canvas || !ctx) return;
+
+      const options = {
+        text: root.dataset.text || '',
+        particleSize: clamp(Number(root.dataset.particleSize) || 1.4, 0.8, 3),
+        density: clamp(Number(root.dataset.density) || 1, 0.6, 2.4),
+        color: root.dataset.color || '#eef2f5',
+        highlightColor: root.dataset.highlightColor || '#d8b4fe',
+        scatter: clamp(Number(root.dataset.scatter) || 70, 12, 180),
+        gatherDuration: clamp(Number(root.dataset.gatherDuration) || 1100, 120, 4000),
+        stagger: clamp(Number(root.dataset.stagger) || 220, 0, 1200),
+        pointerRepel: root.dataset.pointerRepel !== 'false',
+        repelRadius: clamp(Number(root.dataset.repelRadius) || 90, 30, 240),
+        idleDrift: clamp(Number(root.dataset.idleDrift) || 0.7, 0, 3),
+        glow: root.dataset.glow !== 'false'
+      };
+
+      function resolveColor(value) {
+        const probe = document.createElement('span');
+        probe.style.color = value;
+        root.appendChild(probe);
+        const color = getComputedStyle(probe).color;
+        probe.remove();
+        return color || value;
+      }
+
+      options.color = resolveColor(options.color);
+      options.highlightColor = resolveColor(options.highlightColor);
+
+      const state = {
+        width: 0,
+        height: 0,
+        dpr: 1,
+        particles: [],
+        pointer: { x: 0, y: 0, active: false },
+        start: performance.now(),
+        frame: 0
+      };
+
+      function getFont() {
+        const styles = getComputedStyle(root);
+        const size = styles.fontSize;
+        const weight = styles.fontWeight;
+        const family = styles.fontFamily;
+        return { size, weight, family };
+      }
+
+      function resolveFontSize(ctx, text, maxWidth, maxHeight) {
+        const { size, weight, family } = getFont();
+        const probe = document.createElement('span');
+        probe.style.position = 'absolute';
+        probe.style.visibility = 'hidden';
+        probe.style.fontSize = size;
+        root.appendChild(probe);
+        let fontPx = parseFloat(getComputedStyle(probe).fontSize) || maxHeight * 0.72;
+        probe.remove();
+
+        fontPx = Math.min(fontPx, maxHeight * 0.82);
+        ctx.font = `${weight} ${fontPx}px ${family}`;
+        while (ctx.measureText(text).width > maxWidth && fontPx > 28) {
+          fontPx -= 2;
+          ctx.font = `${weight} ${fontPx}px ${family}`;
+        }
+        return { fontPx, weight, family };
+      }
+
+      function buildParticles() {
+        const rect = root.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+        const width = Math.max(1, Math.floor(rect.width));
+        const height = Math.max(1, Math.floor(rect.height));
+
+        state.width = width;
+        state.height = height;
+        state.dpr = dpr;
+        state.start = performance.now();
+        state.particles = [];
+
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const sampler = document.createElement('canvas');
+        const sampleCtx = sampler.getContext('2d', { willReadFrequently: true });
+        if (!sampleCtx) return;
+
+        sampler.width = Math.floor(width * dpr);
+        sampler.height = Math.floor(height * dpr);
+        sampleCtx.scale(dpr, dpr);
+        sampleCtx.clearRect(0, 0, width, height);
+
+        const { fontPx, weight, family } = resolveFontSize(sampleCtx, options.text, width * 0.94, height * 0.82);
+        sampleCtx.font = `${weight} ${fontPx}px ${family}`;
+        sampleCtx.textAlign = 'center';
+        sampleCtx.textBaseline = 'middle';
+        sampleCtx.fillStyle = '#fff';
+        sampleCtx.fillText(options.text, width / 2, height / 2 + fontPx * 0.03);
+
+        const image = sampleCtx.getImageData(0, 0, sampler.width, sampler.height);
+        const step = Math.max(3, Math.round((7 - options.density * 2.2) * dpr));
+        const limit = Math.min(1800, Math.max(640, Math.floor((width * height) / 42)));
+        const points = [];
+
+        for (let y = 0; y < sampler.height; y += step) {
+          for (let x = 0; x < sampler.width; x += step) {
+            const alpha = image.data[(y * sampler.width + x) * 4 + 3];
+            if (alpha > 70) {
+              points.push({
+                x: x / dpr,
+                y: y / dpr,
+                alpha: alpha / 255
+              });
+            }
+          }
+        }
+
+        const stride = Math.max(1, Math.ceil(points.length / limit));
+        state.particles = points.filter((_, index) => index % stride === 0).map((point, index) => {
+          const angle = Math.random() * Math.PI * 2;
+          const distance = options.scatter * (0.45 + Math.random() * 0.9);
+          const fromX = point.x + Math.cos(angle) * distance;
+          const fromY = point.y + Math.sin(angle) * distance;
+
+          return {
+            x: prefersReducedMotion ? point.x : fromX,
+            y: prefersReducedMotion ? point.y : fromY,
+            fromX,
+            fromY,
+            tx: point.x,
+            ty: point.y,
+            vx: 0,
+            vy: 0,
+            size: options.particleSize * (0.68 + point.alpha * 0.65 + Math.random() * 0.22),
+            delay: (index / Math.max(points.length, 1)) * options.stagger,
+            seed: Math.random() * Math.PI * 2,
+            highlight: Math.random() > 0.72
+          };
+        });
+      }
+
+      function draw(now) {
+        const elapsed = now - state.start;
+        const time = now * 0.001;
+        ctx.clearRect(0, 0, state.width, state.height);
+
+        if (options.glow) {
+          const contrast = ctx.createRadialGradient(
+            state.width / 2,
+            state.height * 0.52,
+            Math.max(state.width, state.height) * 0.08,
+            state.width / 2,
+            state.height * 0.52,
+            Math.max(state.width, state.height) * 0.55
+          );
+          contrast.addColorStop(0, 'rgba(0, 0, 0, 0.42)');
+          contrast.addColorStop(0.5, 'rgba(0, 0, 0, 0.24)');
+          contrast.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          ctx.fillStyle = contrast;
+          ctx.fillRect(0, 0, state.width, state.height);
+
+          const glow = ctx.createRadialGradient(
+            state.width / 2,
+            state.height * 0.52,
+            0,
+            state.width / 2,
+            state.height * 0.52,
+            Math.max(state.width, state.height) * 0.42
+          );
+          glow.addColorStop(0, 'rgba(251, 250, 255, 0.2)');
+          glow.addColorStop(0.28, 'rgba(216, 180, 254, 0.085)');
+          glow.addColorStop(1, 'rgba(167, 139, 250, 0)');
+          ctx.fillStyle = glow;
+          ctx.fillRect(0, 0, state.width, state.height);
+        }
+
+        ctx.globalCompositeOperation = 'lighter';
+        for (const particle of state.particles) {
+          const progress = prefersReducedMotion
+            ? 1
+            : easeOutCubic(clamp((elapsed - particle.delay) / options.gatherDuration, 0, 1));
+          const driftX = Math.sin(time * 0.74 + particle.seed) * options.idleDrift;
+          const driftY = Math.cos(time * 0.66 + particle.seed * 1.4) * options.idleDrift;
+          let targetX = mix(particle.fromX, particle.tx + driftX, progress);
+          let targetY = mix(particle.fromY, particle.ty + driftY, progress);
+
+          if (options.pointerRepel && finePointer && state.pointer.active) {
+            const dx = targetX - state.pointer.x;
+            const dy = targetY - state.pointer.y;
+            const distance = Math.hypot(dx, dy) || 1;
+            if (distance < options.repelRadius) {
+              const force = Math.pow(1 - distance / options.repelRadius, 2);
+              targetX += (dx / distance) * force * options.repelRadius * 0.64;
+              targetY += (dy / distance) * force * options.repelRadius * 0.64;
+            }
+          }
+
+          particle.vx += (targetX - particle.x) * 0.09;
+          particle.vy += (targetY - particle.y) * 0.09;
+          particle.vx *= 0.78;
+          particle.vy *= 0.78;
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+
+          const alpha = 0.74 + progress * 0.26;
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.62)';
+          ctx.globalAlpha = 0.32 + progress * 0.32;
+          ctx.beginPath();
+          ctx.arc(particle.x + 1.1, particle.y + 1.6, particle.size * 1.55, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.fillStyle = particle.highlight ? options.highlightColor : options.color;
+          ctx.globalAlpha = particle.highlight ? alpha : alpha * 0.9;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.fillStyle = '#ffffff';
+          ctx.globalAlpha = 0.22 + progress * 0.24;
+          ctx.beginPath();
+          ctx.arc(particle.x - 0.25, particle.y - 0.25, Math.max(0.65, particle.size * 0.42), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+
+        state.frame = requestAnimationFrame(draw);
+      }
+
+      function handlePointer(event) {
+        const rect = root.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        state.pointer.x = x;
+        state.pointer.y = y;
+        state.pointer.active = x >= 0 && x <= rect.width && y >= 0 && y <= rect.height;
+      }
+
+      function leavePointer() {
+        state.pointer.active = false;
+      }
+
+      buildParticles();
+      state.frame = requestAnimationFrame(draw);
+
+      window.addEventListener('resize', buildParticles, { passive: true });
+      if (options.pointerRepel && finePointer && !prefersReducedMotion) {
+        window.addEventListener('pointermove', handlePointer, { passive: true });
+        window.addEventListener('pointerleave', leavePointer, { passive: true });
+        window.addEventListener('blur', leavePointer);
+      }
+
+      document.fonts?.ready.then(buildParticles).catch(() => {});
+      window.addEventListener(
+        'beforeunload',
+        () => {
+          cancelAnimationFrame(state.frame);
+        },
+        { once: true }
+      );
+    });
+  })();
+</script>
+
+<style>
+  .particle-title {
+    position: relative;
+    display: block;
+    width: min(100%, 980px);
+    height: clamp(132px, 21vw, 236px);
+    margin-inline: auto;
+    font-family: var(--particle-title-font-family);
+    font-size: var(--particle-title-font-size);
+    font-weight: var(--particle-title-font-weight);
+    isolation: isolate;
+  }
+
+  .particle-title::after {
+    position: absolute;
+    inset: 8% 3% 3%;
+    z-index: -1;
+    border-radius: 999px;
+    background:
+      radial-gradient(circle, color-mix(in srgb, var(--particle-title-highlight) 12%, transparent), transparent 58%),
+      radial-gradient(ellipse at center, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.18) 48%, transparent 72%);
+    filter: blur(12px);
+    opacity: 1;
+    content: "";
+  }
+
+  .particle-title__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .particle-title canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  @media (max-width: 640px) {
+    .particle-title {
+      height: clamp(108px, 29vw, 150px);
+    }
+  }
+</style>

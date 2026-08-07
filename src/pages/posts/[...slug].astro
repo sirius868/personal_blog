@@ -17,9 +17,9 @@ const { Content } = await post.render();
 
 <BaseLayout title={post.data.title} description={post.data.description}>
   <article class="prose">
-    <a class="back-link" href="/" aria-label="返回文章列表">
+    <a class="back-link" href="/" aria-label="返回上一页" data-back-link>
       <span aria-hidden="true">←</span>
-      返回文章列表
+      返回上一页
     </a>
     <div class="meta">
       <time datetime={post.data.pubDate.toISOString()}>
@@ -38,4 +38,12 @@ const { Content } = await post.render();
     </div>
     <Content />
   </article>
+  <script is:inline>
+    document.querySelector('[data-back-link]')?.addEventListener('click', (event) => {
+      if (window.history.length > 1) {
+        event.preventDefault();
+        window.history.back();
+      }
+    });
+  </script>
 </BaseLayout>

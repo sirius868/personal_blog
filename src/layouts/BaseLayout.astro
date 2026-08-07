@@ -1,5 +1,5 @@
 ---
-import { AUTHOR_NAME, AUTHOR_ROLE, SITE_DESCRIPTION, SITE_NAV, SITE_TITLE } from '../consts';
+import { AUTHOR_ROLE, SITE_DESCRIPTION, SITE_NAV, SITE_TITLE } from '../consts';
 
 interface Props {
   title?: string;
@@ -12,19 +12,21 @@ const pathname = Astro.url.pathname;
 ---
 
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-path={pathname}>
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/brand-mark.svg" />
     <title>{pageTitle}</title>
   </head>
   <body>
     <canvas id="ambient-field" aria-hidden="true"></canvas>
     <header class="site-header">
       <a class="brand" href="/" aria-label={SITE_TITLE}>
-        <span class="brand-mark">H</span>
+        <span class="brand-mark">
+          <img src="/brand-mark.svg" alt="" width="40" height="40" />
+        </span>
         <span class="brand-copy">
           <strong>{SITE_TITLE}</strong>
           <small>{AUTHOR_ROLE}</small>
@@ -43,11 +45,6 @@ const pathname = Astro.url.pathname;
     <main>
       <slot />
     </main>
-    <footer class="site-footer">
-      <span>© {new Date().getFullYear()} {AUTHOR_NAME}</span>
-      <span>由 Astro 驱动</span>
-    </footer>
-
     <script is:inline>
       const canvas = document.getElementById('ambient-field');
       const ctx = canvas instanceof HTMLCanvasElement ? canvas.getContext('2d') : null;
@@ -55,9 +52,9 @@ const pathname = Astro.url.pathname;
 
       if (canvas && ctx && !reduceMotion.matches) {
         const colors = [
-          'rgba(0, 255, 128, 0.16)',
-          'rgba(38, 190, 112, 0.105)',
-          'rgba(9, 68, 43, 0.12)'
+          'rgba(167, 139, 250, 0.42)',
+          'rgba(216, 180, 254, 0.26)',
+          'rgba(129, 140, 248, 0.2)'
         ];
         const pointer = {
           x: window.innerWidth * 0.62,
@@ -76,7 +73,7 @@ const pathname = Astro.url.pathname;
         let particles = [];
 
         function resize() {
-          dpr = Math.min(window.devicePixelRatio || 1, 2);
+          dpr = Math.min(window.devicePixelRatio || 1, 2.75);
           width = window.innerWidth;
           height = window.innerHeight;
           canvas.width = Math.floor(width * dpr);
@@ -85,13 +82,14 @@ const pathname = Astro.url.pathname;
           canvas.style.height = `${height}px`;
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-          const count = Math.min(86, Math.max(36, Math.floor((width * height) / 22000)));
+          const count = Math.min(260, Math.max(120, Math.floor((width * height) / 7200)));
           particles = Array.from({ length: count }, (_, index) => ({
             x: Math.random() * width,
             y: Math.random() * height,
             vx: 0,
             vy: 0,
-            radius: 72 + Math.random() * 150,
+            radius: 1.2 + Math.random() * 3.6,
+            halo: 12 + Math.random() * 34,
             hue: index % colors.length,
             phase: Math.random() * Math.PI * 2
           }));
@@ -114,7 +112,7 @@ const pathname = Astro.url.pathname;
         function render() {
           frame += 0.0038;
           ctx.globalCompositeOperation = 'source-over';
-          ctx.fillStyle = 'rgba(5, 9, 7, 0.16)';
+          ctx.fillStyle = 'rgba(7, 7, 17, 0.2)';
           ctx.fillRect(0, 0, width, height);
           ctx.globalCompositeOperation = 'lighter';
 
@@ -130,12 +128,12 @@ const pathname = Astro.url.pathname;
             const influence = Math.max(0, 1 - distance / 520);
             const swirl = Math.sin(frame * 1.35 + p.phase + distance * 0.008) * 0.1;
 
-            p.vx += -dy / distance * influence * 0.07 + pointer.vx * influence * 0.002;
-            p.vy += dx / distance * influence * 0.07 + pointer.vy * influence * 0.002;
-            p.vx += Math.sin(frame + p.phase) * 0.004 + swirl * 0.005;
-            p.vy += Math.cos(frame * 0.9 + p.phase) * 0.004 - swirl * 0.005;
-            p.vx *= 0.936;
-            p.vy *= 0.936;
+            p.vx += -dy / distance * influence * 0.026 + pointer.vx * influence * 0.0012;
+            p.vy += dx / distance * influence * 0.026 + pointer.vy * influence * 0.0012;
+            p.vx += Math.sin(frame + p.phase) * 0.0025 + swirl * 0.0025;
+            p.vy += Math.cos(frame * 0.9 + p.phase) * 0.0025 - swirl * 0.0025;
+            p.vx *= 0.962;
+            p.vy *= 0.962;
             p.x += p.vx;
             p.y += p.vy;
 
@@ -144,11 +142,16 @@ const pathname = Astro.url.pathname;
             if (p.y < -180) p.y = height + 180;
             if (p.y > height + 180) p.y = -180;
 
-            const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+            const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.halo);
             gradient.addColorStop(0, colors[p.hue]);
-            gradient.addColorStop(0.48, colors[p.hue].replace(/0\.\d+\)/, '0.032)'));
-            gradient.addColorStop(1, 'rgba(5, 9, 7, 0)');
+            gradient.addColorStop(0.28, colors[p.hue].replace(/0\.\d+\)/, '0.075)'));
+            gradient.addColorStop(1, 'rgba(7, 7, 17, 0)');
             ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.halo, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = colors[p.hue].replace(/0\.\d+\)/, '0.72)');
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
             ctx.fill();
@@ -176,15 +179,15 @@ const pathname = Astro.url.pathname;
 
   :root {
     color-scheme: dark;
-    --bg: #050907;
-    --panel: #0b1210;
-    --panel-2: #101b17;
+    --bg: #070711;
+    --panel: #111020;
+    --panel-2: #18162b;
     --text: #eef2f5;
     --muted: #9ca8b4;
     --faint: #66727f;
-    --line: #1c2a24;
-    --accent: #00ff80;
-    --accent-2: #8dffbf;
+    --line: #29243f;
+    --accent: #a78bfa;
+    --accent-2: #d8b4fe;
     --danger: #ff8d8d;
     --shadow: 0 22px 80px rgba(0, 0, 0, 0.22);
     --font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
@@ -201,6 +204,9 @@ const pathname = Astro.url.pathname;
     background: var(--bg);
     scroll-behavior: smooth;
     scroll-padding-top: 84px;
+  }
+
+  html[data-path="/"] {
     scroll-snap-type: y mandatory;
   }
 
@@ -209,10 +215,12 @@ const pathname = Astro.url.pathname;
     margin: 0;
     min-height: 100vh;
     background:
-      radial-gradient(circle at 50% 0%, rgba(0, 255, 128, 0.08), transparent 28rem),
+      radial-gradient(circle at 50% 0%, rgba(167, 139, 250, 0.1), transparent 28rem),
       linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 22rem),
       var(--bg);
     color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
   }
 
   body::before {
@@ -222,8 +230,8 @@ const pathname = Astro.url.pathname;
     pointer-events: none;
     content: "";
     background-image:
-      linear-gradient(rgba(0, 255, 128, 0.024) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 255, 128, 0.018) 1px, transparent 1px);
+      linear-gradient(rgba(167, 139, 250, 0.026) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(216, 180, 254, 0.018) 1px, transparent 1px);
     background-size: 52px 52px;
     mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.78), transparent 74%);
   }
@@ -233,8 +241,8 @@ const pathname = Astro.url.pathname;
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    filter: blur(34px) saturate(0.95);
-    opacity: 0.74;
+    filter: saturate(1.08);
+    opacity: 0.82;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -249,8 +257,7 @@ const pathname = Astro.url.pathname;
   }
 
   main,
-  .site-header,
-  .site-footer {
+  .site-header {
     position: relative;
     z-index: 2;
     width: min(1120px, calc(100% - 32px));
@@ -266,7 +273,29 @@ const pathname = Astro.url.pathname;
     justify-content: space-between;
     gap: 24px;
     padding: 18px 0;
-    backdrop-filter: blur(18px);
+    isolation: isolate;
+  }
+
+  .site-header::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    z-index: -1;
+    width: 100vw;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background:
+      linear-gradient(180deg, rgba(12, 11, 25, 0.84), rgba(12, 11, 25, 0.52)),
+      rgba(7, 7, 17, 0.58);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.16);
+    backdrop-filter: blur(18px) saturate(1.18);
+    transform: translateX(-50%);
+    content: "";
+  }
+
+  .site-header > * {
+    position: relative;
+    z-index: 1;
   }
 
   .brand {
@@ -277,16 +306,23 @@ const pathname = Astro.url.pathname;
   }
 
   .brand-mark {
-    display: grid;
-    place-items: center;
     width: 40px;
     height: 40px;
     flex: 0 0 auto;
-    border: 1px solid rgba(120, 214, 177, 0.45);
+    display: block;
+    overflow: hidden;
+    border: 1px solid rgba(167, 139, 250, 0.38);
     border-radius: 8px;
-    background: rgba(23, 27, 32, 0.9);
-    color: var(--accent);
-    font: 800 15px/1 var(--font-mono);
+    background: rgba(7, 7, 17, 0.72);
+    box-shadow:
+      0 0 0 1px rgba(216, 180, 254, 0.06) inset,
+      0 14px 34px rgba(0, 0, 0, 0.22);
+  }
+
+  .brand-mark img {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   .brand-copy {
@@ -314,9 +350,12 @@ const pathname = Astro.url.pathname;
     align-items: center;
     gap: 6px;
     padding: 5px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    background: rgba(16, 18, 20, 0.64);
+    background: rgba(12, 11, 25, 0.72);
+    box-shadow:
+      0 10px 28px rgba(0, 0, 0, 0.18),
+      0 0 0 1px rgba(167, 139, 250, 0.05) inset;
     color: var(--muted);
     font-size: 14px;
   }
@@ -325,12 +364,29 @@ const pathname = Astro.url.pathname;
     min-height: 32px;
     padding: 7px 11px;
     border-radius: 6px;
+    border: 1px solid transparent;
+    transition:
+      border-color 160ms ease,
+      background 160ms ease,
+      box-shadow 160ms ease,
+      color 160ms ease;
   }
 
-  nav a:hover,
+  nav a:hover {
+    border-color: rgba(216, 180, 254, 0.26);
+    background: rgba(255, 255, 255, 0.06);
+    color: #f8fff9;
+  }
+
   nav a.active {
-    background: var(--panel-2);
-    color: var(--text);
+    border-color: rgba(216, 180, 254, 0.62);
+    background:
+      linear-gradient(180deg, rgba(216, 180, 254, 0.17), rgba(167, 139, 250, 0.1)),
+      rgba(24, 22, 43, 0.96);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+      0 8px 24px rgba(167, 139, 250, 0.15);
+    color: #ffffff;
   }
 
   h1,
@@ -351,14 +407,45 @@ const pathname = Astro.url.pathname;
   .hero {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-    gap: 28px;
-    align-items: center;
+    grid-template-columns: 1fr;
+    align-content: center;
+    justify-items: center;
+    gap: clamp(42px, 7vh, 78px);
     min-height: calc(100vh - 84px);
-    padding: 70px 0 44px;
+    padding: clamp(28px, 6vh, 58px) 0 44px;
     border-bottom: 1px solid var(--line);
+  }
+
+  .about-hero::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+    width: min(960px, calc(100% + 10px));
+    height: min(540px, calc(100% - 56px));
+    border: 1px solid rgba(216, 180, 254, 0.18);
+    border-radius: 8px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(167, 139, 250, 0.11), transparent 24rem),
+      linear-gradient(180deg, rgba(18, 16, 34, 0.8), rgba(10, 9, 22, 0.6));
+    box-shadow:
+      0 28px 90px rgba(0, 0, 0, 0.28),
+      0 0 0 1px rgba(255, 255, 255, 0.035) inset;
+    backdrop-filter: blur(20px) saturate(1.18);
+    transform: translate(-50%, -50%);
+    content: "";
+  }
+
+  .about-hero .hero-stack {
+    max-width: 760px;
+  }
+
+  .about-hero .hero-panel {
+    width: min(620px, 100%);
+  }
+
+  html[data-path="/"] .hero {
     scroll-snap-align: start;
-    scroll-snap-stop: always;
   }
 
   .hero-stack,
@@ -369,25 +456,38 @@ const pathname = Astro.url.pathname;
 
   .hero-stack {
     display: grid;
-    gap: 20px;
+    justify-items: center;
+    gap: 24px;
+    width: min(920px, 100%);
+    margin-top: -4vh;
+    text-align: center;
   }
 
   .hero-title {
     display: grid;
-    gap: 18px;
+    justify-items: center;
+    gap: clamp(26px, 4vh, 42px);
+    padding-bottom: 6px;
   }
 
-  .hero-title h1 {
-    font-size: clamp(30px, 4.2vw, 50px);
-    line-height: 1.08;
+  .hero-kicker {
+    max-width: 760px;
+    margin: 0;
+    font-size: clamp(28px, 3.4vw, 46px);
+    font-family: var(--font-display);
+    font-weight: 800;
+    line-height: 1.12;
+    color: color-mix(in srgb, var(--text) 92%, var(--accent));
+    text-shadow: 0 12px 38px rgba(167, 139, 250, 0.12);
+    text-wrap: balance;
   }
 
   .eyebrow {
     margin: 0;
     color: var(--accent);
-    font: 800 13px/1.2 var(--font-mono);
+    font: 800 12px/1.2 var(--font-mono);
     text-transform: uppercase;
-    letter-spacing: 0;
+    letter-spacing: 0.08em;
   }
 
   h1 {
@@ -397,13 +497,28 @@ const pathname = Astro.url.pathname;
     line-height: 1;
   }
 
-  .hero p,
+  .hero-copy,
   .page-intro {
-    max-width: 720px;
+    max-width: 680px;
     margin: 0;
     color: var(--muted);
-    font-size: 18px;
-    line-height: 1.75;
+    font-size: clamp(16px, 1.7vw, 18px);
+    line-height: 1.78;
+    text-wrap: balance;
+  }
+
+  .hero-copy {
+    margin-top: 4px;
+  }
+
+  .hero-dashboard {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+    gap: 16px;
+    align-items: stretch;
+    width: min(900px, 100%);
   }
 
   .hero-panel,
@@ -441,8 +556,8 @@ const pathname = Astro.url.pathname;
 
   .terminal-body {
     display: grid;
-    gap: 13px;
-    padding: 18px;
+    gap: 12px;
+    padding: 20px;
     color: var(--muted);
     font: 14px/1.65 var(--font-mono);
   }
@@ -461,8 +576,14 @@ const pathname = Astro.url.pathname;
     justify-content: center;
     min-height: calc(100vh - 84px);
     padding: 42px 0;
+  }
+
+  html[data-path="/"] .section {
     scroll-snap-align: start;
-    scroll-snap-stop: always;
+  }
+
+  html[data-path="/"] main > :last-child {
+    scroll-snap-align: end;
   }
 
   .section.grid {
@@ -502,7 +623,7 @@ const pathname = Astro.url.pathname;
   }
 
   .post-card:hover {
-    border-color: rgba(120, 214, 177, 0.65);
+    border-color: rgba(216, 180, 254, 0.58);
     background: rgba(30, 36, 43, 0.94);
     transform: translateY(-2px);
   }
@@ -554,9 +675,9 @@ const pathname = Astro.url.pathname;
 
   .stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
-    margin-top: 8px;
+    height: 100%;
   }
 
   .stat,
@@ -564,10 +685,21 @@ const pathname = Astro.url.pathname;
     padding: 18px;
   }
 
+  .stat {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    min-height: 128px;
+    text-align: center;
+  }
+
   .stat strong {
     display: block;
     color: var(--text);
-    font-size: 24px;
+    font-family: var(--font-display);
+    font-size: clamp(26px, 3vw, 36px);
+    font-weight: 900;
+    line-height: 1;
   }
 
   .stat span,
@@ -581,7 +713,6 @@ const pathname = Astro.url.pathname;
     padding-top: 44px;
     font-size: 17px;
     line-height: 1.85;
-    scroll-snap-align: start;
   }
 
   .back-link {
@@ -590,10 +721,10 @@ const pathname = Astro.url.pathname;
     gap: 9px;
     width: fit-content;
     margin-bottom: 24px;
-    border: 1px solid rgba(120, 214, 177, 0.22);
+    border: 1px solid rgba(216, 180, 254, 0.24);
     border-radius: 999px;
     background:
-      linear-gradient(135deg, rgba(120, 214, 177, 0.1), rgba(143, 185, 255, 0.04)),
+      linear-gradient(135deg, rgba(167, 139, 250, 0.12), rgba(216, 180, 254, 0.05)),
       rgba(23, 27, 32, 0.78);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
     padding: 7px 13px 7px 8px;
@@ -615,16 +746,16 @@ const pathname = Astro.url.pathname;
     width: 24px;
     height: 24px;
     border-radius: 999px;
-    background: rgba(120, 214, 177, 0.14);
+    background: rgba(167, 139, 250, 0.16);
     color: var(--accent);
     font-size: 15px;
     line-height: 1;
   }
 
   .back-link:hover {
-    border-color: rgba(120, 214, 177, 0.64);
+    border-color: rgba(216, 180, 254, 0.66);
     background:
-      linear-gradient(135deg, rgba(120, 214, 177, 0.16), rgba(143, 185, 255, 0.06)),
+      linear-gradient(135deg, rgba(167, 139, 250, 0.18), rgba(216, 180, 254, 0.07)),
       rgba(30, 36, 43, 0.9);
     color: var(--text);
     transform: translateX(-2px);
@@ -672,22 +803,8 @@ const pathname = Astro.url.pathname;
     font-size: 20px;
   }
 
-  .site-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    margin-top: 72px;
-    padding: 28px 0 40px;
-    border-top: 1px solid var(--line);
-    color: var(--muted);
-    font-size: 14px;
-    scroll-snap-align: end;
-  }
-
   @media (max-width: 820px) {
-    .site-header,
-    .site-footer {
+    .site-header {
       align-items: flex-start;
       flex-direction: column;
     }
@@ -700,6 +817,19 @@ const pathname = Astro.url.pathname;
     .hero {
       grid-template-columns: 1fr;
       padding-top: 42px;
+    }
+
+    .hero-stack {
+      margin-top: 0;
+      gap: 20px;
+    }
+
+    .hero-title {
+      gap: 24px;
+    }
+
+    .hero-dashboard {
+      grid-template-columns: 1fr;
     }
 
     .section-heading {
