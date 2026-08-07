@@ -1,0 +1,249 @@
+---
+interface Props {
+  text?: string;
+  layers?: number;
+  depth?: number;
+  faceColor?: string;
+  depthColor?: string;
+  tilt?: number;
+  pointerTracking?: boolean;
+  smoothing?: number;
+  perspective?: number;
+  autoOrbit?: boolean;
+  orbitSpeed?: number;
+  fontSize?: string;
+  fontWeight?: number | string;
+  shadow?: boolean;
+  class?: string;
+}
+
+const {
+  text = '开发者日志',
+  layers = 22,
+  depth = 1.35,
+  faceColor = 'var(--text)',
+  depthColor = 'var(--accent)',
+  tilt = 4,
+  pointerTracking = true,
+  smoothing = 0.12,
+  perspective = 900,
+  autoOrbit = true,
+  orbitSpeed = 0.16,
+  fontSize = 'clamp(3.2rem, 9vw, 6.8rem)',
+  fontWeight = 900,
+  shadow = true,
+  class: className = ''
+} = Astro.props;
+
+const MAX_LAYERS = 48;
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+const safeLayers = clamp(Math.round(Number(layers) || 1), 2, MAX_LAYERS);
+const safeDepth = clamp(Number(depth) || 0, 0, 8);
+const safeTilt = clamp(Number(tilt) || 0, 0, 10);
+const safeSmoothing = clamp(Number(smoothing) || 0.12, 0.02, 0.35);
+const safePerspective = clamp(Number(perspective) || 900, 300, 1800);
+const safeOrbitSpeed = clamp(Number(orbitSpeed) || 0, 0, 1);
+
+const depthLayers = Array.from({ length: safeLayers }, (_, layerIndex) => {
+  const index = safeLayers - layerIndex;
+  const progress = safeLayers <= 1 ? 1 : index / safeLayers;
+  const eased = progress * progress;
+  const faceMix = Math.round((1 - eased) * 58 + 8);
+  return {
+    index,
+    color: `color-mix(in srgb, ${faceColor} ${faceMix}%, ${depthColor})`,
+    transform: `translateZ(${-index * safeDepth}px)`
+  };
+});
+
+const rootStyle = [
+  `--depth-text-perspective:${safePerspective}px`,
+  `--depth-text-font-size:${fontSize}`,
+  `--depth-text-font-weight:${fontWeight}`,
+  `--depth-text-face-color:${faceColor}`,
+  `--depth-text-depth-color:${depthColor}`,
+  `--depth-text-tilt:${safeTilt}`,
+  `--depth-text-smoothing:${safeSmoothing}`,
+  `--depth-text-orbit-speed:${safeOrbitSpeed}`,
+  `--depth-text-shadow:${
+    shadow
+      ? `0 18px 34px color-mix(in srgb, ${depthColor} 20%, transparent), 0 3px 10px rgba(0, 0, 0, 0.22)`
+      : 'none'
+  }`
+].join(';');
+---
+
+<span
+  class:list={['depth-text', className]}
+  data-depth-text
+  data-pointer-tracking={String(pointerTracking)}
+  data-auto-orbit={String(autoOrbit)}
+  style={rootStyle}
+>
+  <span class="depth-text__stage" data-depth-stage>
+    {
+      depthLayers.map((layer) => (
+        <span
+          aria-hidden="true"
+          class="depth-text__layer"
+          style={`color:${layer.color};transform:${layer.transform}`}
+        >
+          {text}
+        </span>
+      ))
+    }
+    <span class="depth-text__face">{text}</span>
+  </span>
+</span>
+
+<script is:inline>
+  (() => {
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+    const getTransform = (rotateX, rotateY) =>
+      `rotateX(${rotateX.toFixed(3)}deg) rotateY(${rotateY.toFixed(3)}deg)`;
+
+    document.querySelectorAll('[data-depth-text]').forEach((root) => {
+      const stage = root.querySelector('[data-depth-stage]');
+      if (!stage) return;
+
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      const tilt = clamp(Number(getComputedStyle(root).getPropertyValue('--depth-text-tilt')) || 4, 0, 10);
+      const smoothing = clamp(Number(getComputedStyle(root).getPropertyValue('--depth-text-smoothing')) || 0.12, 0.02, 0.35);
+      const orbitSpeed = clamp(Number(getComputedStyle(root).getPropertyValue('--depth-text-orbit-speed')) || 0, 0, 1);
+      const pointerTracking = root.dataset.pointerTracking !== 'false';
+      const autoOrbit = root.dataset.autoOrbit !== 'false';
+      const canTrackPointer = pointerTracking && finePointer && !reducedMotion;
+      const baseRotation = { x: -tilt * 0.26, y: tilt * 0.34 };
+      const current = { ...baseRotation };
+      const target = { ...baseRotation };
+
+      let frameId = 0;
+      let activePointer = false;
+      let startTime = performance.now();
+
+      const applyTransform = () => {
+        stage.style.transform = getTransform(current.x, current.y);
+      };
+
+      if (reducedMotion) {
+        applyTransform();
+        return;
+      }
+
+      const handlePointerMove = (event) => {
+        const rect = root.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+
+        activePointer = true;
+        const x = clamp((event.clientX - (rect.left + rect.width / 2)) / (rect.width * 0.8), -1, 1);
+        const y = clamp((event.clientY - (rect.top + rect.height / 2)) / (rect.height * 0.8), -1, 1);
+
+        target.x = baseRotation.x - y * tilt;
+        target.y = baseRotation.y + x * tilt;
+      };
+
+      const handlePointerLeave = () => {
+        activePointer = false;
+        target.x = baseRotation.x;
+        target.y = baseRotation.y;
+      };
+
+      if (canTrackPointer) {
+        window.addEventListener('pointermove', handlePointerMove, { passive: true });
+        window.addEventListener('pointerleave', handlePointerLeave, { passive: true });
+        window.addEventListener('blur', handlePointerLeave);
+      }
+
+      const tick = (now) => {
+        if ((!canTrackPointer || !activePointer) && autoOrbit) {
+          const elapsed = (now - startTime) / 1000;
+          const orbit = elapsed * orbitSpeed * Math.PI * 2;
+          const amount = canTrackPointer ? 0.14 : 0.42;
+          target.x = baseRotation.x + Math.sin(orbit) * tilt * amount;
+          target.y = baseRotation.y + Math.cos(orbit * 0.85) * tilt * amount;
+        }
+
+        current.x += (target.x - current.x) * smoothing;
+        current.y += (target.y - current.y) * smoothing;
+        applyTransform();
+        frameId = requestAnimationFrame(tick);
+      };
+
+      applyTransform();
+      frameId = requestAnimationFrame(tick);
+
+      window.addEventListener('beforeunload', () => {
+        cancelAnimationFrame(frameId);
+        startTime = 0;
+      }, { once: true });
+    });
+  })();
+</script>
+
+<style>
+  .depth-text {
+    display: inline-block;
+    max-width: 100%;
+    perspective: var(--depth-text-perspective);
+    perspective-origin: 50% 48%;
+    isolation: isolate;
+  }
+
+  .depth-text__stage {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    max-width: 100%;
+    transform-style: preserve-3d;
+    transform: rotateX(-1.04deg) rotateY(1.36deg);
+    transform-origin: 50% 50%;
+    will-change: transform;
+  }
+
+  .depth-text__layer,
+  .depth-text__face {
+    grid-area: 1 / 1;
+    display: inline-block;
+    max-width: 100%;
+    font-size: var(--depth-text-font-size);
+    font-family: var(--font-display, serif);
+    font-weight: var(--depth-text-font-weight);
+    line-height: 0.92;
+    letter-spacing: 0;
+    white-space: nowrap;
+    user-select: none;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    font-kerning: normal;
+    text-rendering: geometricPrecision;
+  }
+
+  .depth-text__layer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    filter: saturate(0.92) brightness(0.88);
+    pointer-events: none;
+  }
+
+  .depth-text__face {
+    position: relative;
+    z-index: 1;
+    color: var(--depth-text-face-color);
+    text-shadow: var(--depth-text-shadow);
+    transform: translateZ(0.6px);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .depth-text {
+      cursor: default;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .depth-text__stage {
+      will-change: auto;
+    }
+  }
+</style>

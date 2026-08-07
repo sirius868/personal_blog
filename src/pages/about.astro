@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { AUTHOR_NAME } from '../consts';
+---
+
+<BaseLayout title="关于">
+  <section class="hero" data-scene="0">
+    <div class="hero-stack">
+      <p class="eyebrow">关于我</p>
+      <h1>{AUTHOR_NAME}</h1>
+      <p>
+        这里可以写你的技术方向、项目经历、联系方式，以及你希望别人通过这个博客认识到的那部分自己。
+      </p>
+    </div>
+    <aside class="hero-panel" aria-label="个人信息速览">
+      <div class="terminal-bar"><span></span><span></span><span></span></div>
+      <div class="terminal-body">
+        <div><strong>角色：</strong> 软件开发者</div>
+        <div><strong>方向：</strong> Web 工程 / 开发工具 / 系统设计</div>
+        <div><strong>状态：</strong> 持续构建，持续记录</div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="section grid" data-scene="2">
+    <article class="info-card">
+      <h2>关注方向</h2>
+      <p>Web 工程、开发工具、系统设计、AI 辅助开发。</p>
+    </article>
+    <article class="info-card">
+      <h2>写作原则</h2>
+      <p>写清背景、取舍、失败路径和最后能复用的结论。</p>
+    </article>
+    <article class="info-card">
+      <h2>联系</h2>
+      <p>把这里替换成你的邮箱、GitHub、X 或其他主页链接。</p>
+    </article>
+  </section>
+</BaseLayout>

@@ -1,0 +1,84 @@
+---
+import DepthText from '../components/DepthText.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { AUTHOR_NAME, AUTHOR_ROLE, SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('posts'))
+  .filter((post) => !post.data.draft)
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+---
+
+<BaseLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
+  <section class="hero" data-scene="0">
+    <div class="hero-stack">
+      <p class="eyebrow">{AUTHOR_NAME} / {AUTHOR_ROLE}</p>
+      <div class="hero-title">
+        <DepthText
+          text={SITE_TITLE}
+          layers={22}
+          depth={1.35}
+          tilt={4}
+          faceColor="var(--text)"
+          depthColor="var(--accent)"
+          fontSize="clamp(3.2rem, 9vw, 6.8rem)"
+          fontWeight={900}
+        />
+        <h1>把解决过的问题，写成可复用的判断。</h1>
+      </div>
+      <p>
+        一个面向程序员的个人博客。记录工程实践、源码阅读、工具流和长期技术思考，让经验不只停留在聊天记录和临时笔记里。
+      </p>
+      <div class="stats" aria-label="博客概览">
+        <div class="stat">
+          <strong>{posts.length}</strong>
+          <span>已发布文章</span>
+        </div>
+        <div class="stat">
+          <strong>{new Set(posts.flatMap((post) => post.data.tags)).size}</strong>
+          <span>主题标签</span>
+        </div>
+        <div class="stat">
+          <strong>RSS</strong>
+          <span>支持订阅</span>
+        </div>
+      </div>
+    </div>
+    <aside class="hero-panel" aria-label="当前写作系统">
+      <div class="terminal-bar"><span></span><span></span><span></span></div>
+      <div class="terminal-body">
+        <div><span class="prompt">$</span> 进入专注模式</div>
+        <div><strong>写作：</strong> 工程复盘 / 源码阅读 / 工具流</div>
+        <div><strong>技术：</strong> Astro + Markdown + RSS</div>
+        <div><strong>视觉：</strong> 3D 标题 / 交互式流体背景 / 克制动效</div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="section" aria-labelledby="latest-posts" data-scene="1">
+    <div class="section-heading">
+      <h2 id="latest-posts">最近文章</h2>
+      <p>每篇文章都尽量保留问题背景、排查路径和最终判断，方便未来回看。</p>
+    </div>
+    <ul class="post-list">
+      {
+        posts.map((post) => (
+          <li class="post-card">
+            <a class="post-link" href={`/posts/${post.slug}/`}>
+              <time class="post-date" datetime={post.data.pubDate.toISOString()}>
+                {post.data.pubDate.toLocaleDateString('zh-CN')}
+              </time>
+              <div>
+                <h2>{post.data.title}</h2>
+                <p class="post-description">{post.data.description}</p>
+                <div class="tags">
+                  {post.data.tags.map((tag: string) => <span>{tag}</span>)}
+                </div>
+              </div>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</BaseLayout>

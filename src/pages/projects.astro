@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="项目">
+  <section class="hero" data-scene="0">
+    <div class="hero-stack">
+      <p class="eyebrow">项目</p>
+      <h1>做过的东西，和它们背后的判断。</h1>
+      <p>展示开源项目、工具、应用和实验原型。比起只放链接，更适合写清楚目标、技术栈、难点和复盘文章。</p>
+    </div>
+    <aside class="hero-panel" aria-label="项目展示模板">
+      <div class="terminal-bar"><span></span><span></span><span></span></div>
+      <div class="terminal-body">
+        <div><strong>格式：</strong> 名称 / 技术栈 / 复盘</div>
+        <div><strong>链接：</strong> 仓库 / 演示 / 文章</div>
+        <div><strong>目标：</strong> 展示判断，而不是堆砌信息</div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="section grid" data-scene="2">
+    <article class="info-card">
+      <h2>个人博客</h2>
+      <p>Astro + Markdown 搭建的技术写作站点，支持文章、标签、RSS 和静态部署。</p>
+    </article>
+    <article class="info-card">
+      <h2>下一个项目</h2>
+      <p>把项目名、简介、技术栈、仓库地址和复盘文章链接放在这里。</p>
+    </article>
+  </section>
+</BaseLayout>
