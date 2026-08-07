@@ -20,10 +20,16 @@ Decap CMS 的 GitHub 后端需要一个 GitHub OAuth 登录通道。最省心的
 npm.cmd run dev
 ```
 
+本地编辑还需要另开一个终端启动 Decap 本地后端：
+
+```bash
+npm.cmd run cms
+```
+
 然后访问：
 
 ```text
 http://127.0.0.1:4321/admin/
 ```
 
-本地保存内容需要另开一个 Decap 本地后端服务；线上编辑以前台 GitHub 登录为准。
+如果没有启动本地后端，点击 GitHub 登录会跳到 Netlify OAuth，并可能显示 `Not Found`。线上编辑需要 Netlify Identity + Git Gateway，或者额外配置 GitHub OAuth 代理。

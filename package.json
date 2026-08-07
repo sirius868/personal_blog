@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "set ASTRO_TELEMETRY_DISABLED=1&& astro dev",
+    "cms": "npx decap-server",
     "build": "set ASTRO_TELEMETRY_DISABLED=1&& astro check && astro build",
     "preview": "set ASTRO_TELEMETRY_DISABLED=1&& astro preview",
     "astro": "set ASTRO_TELEMETRY_DISABLED=1&& astro"

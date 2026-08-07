@@ -10,9 +10,51 @@
     <title>Hang's Blog Admin</title>
   </head>
   <body>
+    <div class="local-cms-note" data-local-cms-note hidden>
+      <strong>本地编辑需要先启动 CMS 后端</strong>
+      <span>另开一个终端运行 npm.cmd run cms，再刷新这个页面。否则 GitHub 登录会跳到 Netlify OAuth 并显示 Not Found。</span>
+    </div>
     <script is:inline>
       window.CMS_CONFIG_FILE = '/admin/config.yml';
+
+      if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
+        document.querySelector('[data-local-cms-note]')?.removeAttribute('hidden');
+      }
     </script>
     <script src="https://unpkg.com/decap-cms@^3.6.2/dist/decap-cms.js"></script>
   </body>
 </html>
+
+<style>
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, sans-serif;
+  }
+
+  .local-cms-note {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    z-index: 10;
+    display: grid;
+    gap: 4px;
+    width: min(560px, calc(100% - 32px));
+    border: 1px solid rgba(15, 118, 110, 0.18);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 18px 48px rgba(31, 53, 59, 0.14);
+    padding: 12px 14px;
+    color: #1d1b22;
+    transform: translateX(-50%);
+  }
+
+  .local-cms-note strong {
+    font-size: 14px;
+  }
+
+  .local-cms-note span {
+    color: #66737a;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+</style>
