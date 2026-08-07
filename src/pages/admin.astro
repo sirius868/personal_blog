@@ -15,19 +15,16 @@
       <span>另开一个终端运行 npm.cmd run cms，再刷新这个页面。线上部署到 Vercel 后会使用 GitHub 授权登录。</span>
     </div>
 
-    <script is:inline>
-      window.CMS_MANUAL_INIT = true;
+    <script>
+      import CMS from 'decap-cms-app';
 
-      if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
-        document.querySelector('[data-local-cms-note]')?.removeAttribute('hidden');
-      }
-    </script>
-    <script src="https://unpkg.com/decap-cms@^3.6.2/dist/decap-cms.js"></script>
-    <script is:inline>
       const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
 
-      window.CMS.init({
-        config: {
+      if (isLocal) {
+        document.querySelector('[data-local-cms-note]')?.removeAttribute('hidden');
+      }
+
+      const config = {
           backend: {
             name: 'github',
             repo: 'sirius868/personal_blog',
@@ -71,8 +68,9 @@
               ]
             }
           ]
-        }
-      });
+      };
+
+      CMS.init({ config: config as any });
     </script>
   </body>
 </html>
