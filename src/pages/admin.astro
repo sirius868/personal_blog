@@ -24,6 +24,7 @@
         document.querySelector('[data-local-cms-note]')?.removeAttribute('hidden');
       }
 
+      (window as Window & { CMS_CONFIG_FILE?: string }).CMS_CONFIG_FILE = '/admin/config.yml';
       CMS.init();
     </script>
   </body>
