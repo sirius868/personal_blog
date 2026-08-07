@@ -16,8 +16,6 @@
     </div>
 
     <script>
-      import CMS from 'decap-cms-app';
-
       const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
 
       if (isLocal) {
@@ -25,6 +23,7 @@
       }
 
       (window as Window & { CMS_CONFIG_FILE?: string }).CMS_CONFIG_FILE = '/admin/config.yml';
+      const { default: CMS } = await import('decap-cms-app');
       CMS.init();
     </script>
   </body>
