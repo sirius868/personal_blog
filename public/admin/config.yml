@@ -2,14 +2,13 @@ backend:
   name: github
   repo: sirius868/personal_blog
   branch: main
+  auth_endpoint: api/auth
 
 local_backend: true
 
 media_folder: public/uploads
 public_folder: /uploads
 
-site_url: https://sirius868.github.io/personal_blog
-display_url: https://sirius868.github.io/personal_blog
 logo_url: /brand-mark.png
 
 collections:

@@ -12,16 +12,68 @@
   <body>
     <div class="local-cms-note" data-local-cms-note hidden>
       <strong>本地编辑需要先启动 CMS 后端</strong>
-      <span>另开一个终端运行 npm.cmd run cms，再刷新这个页面。否则 GitHub 登录会跳到 Netlify OAuth 并显示 Not Found。</span>
+      <span>另开一个终端运行 npm.cmd run cms，再刷新这个页面。线上部署到 Vercel 后会使用 GitHub 授权登录。</span>
     </div>
+
     <script is:inline>
-      window.CMS_CONFIG_FILE = '/admin/config.yml';
+      window.CMS_MANUAL_INIT = true;
 
       if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
         document.querySelector('[data-local-cms-note]')?.removeAttribute('hidden');
       }
     </script>
     <script src="https://unpkg.com/decap-cms@^3.6.2/dist/decap-cms.js"></script>
+    <script is:inline>
+      const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+
+      window.CMS.init({
+        config: {
+          backend: {
+            name: 'github',
+            repo: 'sirius868/personal_blog',
+            branch: 'main',
+            base_url: location.origin,
+            auth_endpoint: 'api/auth'
+          },
+          local_backend: isLocal,
+          media_folder: 'public/uploads',
+          public_folder: '/uploads',
+          logo_url: '/brand-mark.png',
+          collections: [
+            {
+              name: 'posts',
+              label: '文章',
+              label_singular: '文章',
+              folder: 'src/content/posts',
+              create: true,
+              delete: true,
+              extension: 'md',
+              format: 'frontmatter',
+              slug: '{{slug}}',
+              preview_path: 'posts/{{slug}}/',
+              editor: {
+                preview: false
+              },
+              fields: [
+                { label: '标题', name: 'title', widget: 'string' },
+                { label: '摘要', name: 'description', widget: 'text' },
+                { label: '发布日期', name: 'pubDate', widget: 'date', format: 'YYYY-MM-DD' },
+                { label: '更新日期', name: 'updatedDate', widget: 'date', format: 'YYYY-MM-DD', required: false },
+                {
+                  label: '标签',
+                  name: 'tags',
+                  widget: 'list',
+                  collapsed: false,
+                  field: { label: '标签', name: 'tag', widget: 'string' }
+                },
+                { label: '草稿', name: 'draft', widget: 'boolean', default: false, required: false },
+                { label: '正文', name: 'body', widget: 'markdown' }
+              ]
+            }
+          ]
+        }
+      });
+    </script>
   </body>
 </html>
 
