@@ -6,6 +6,5 @@ export const AUTHOR_ROLE = '软件开发者';
 export const SITE_NAV = [
   { href: '/', label: '文章' },
   { href: '/projects/', label: '项目' },
-  { href: '/about/', label: '关于' },
-  { href: '/rss.xml', label: 'RSS' }
+  { href: '/about/', label: '关于' }
 ];

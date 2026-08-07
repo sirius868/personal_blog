@@ -1,11 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { PROJECTS } from '../data/projects';
 ---
 
 <BaseLayout title="项目">
   <section class="hero" data-scene="0">
     <div class="hero-stack">
-      <p class="eyebrow">项目</p>
       <h1>做过的东西，和它们背后的判断。</h1>
       <p>展示开源项目、工具、应用和实验原型。比起只放链接，更适合写清楚目标、技术栈、难点和复盘文章。</p>
     </div>
@@ -19,14 +19,34 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </aside>
   </section>
 
-  <section class="section grid" data-scene="2">
-    <article class="info-card">
-      <h2>个人博客</h2>
-      <p>Astro + Markdown 搭建的技术写作站点，支持文章、标签、RSS 和静态部署。</p>
-    </article>
-    <article class="info-card">
-      <h2>下一个项目</h2>
-      <p>把项目名、简介、技术栈、仓库地址和复盘文章链接放在这里。</p>
-    </article>
+  <section class="section archive-section" aria-labelledby="projects-grid" data-scene="2">
+    <div class="section-heading">
+      <h2 id="projects-grid">项目档案</h2>
+    </div>
+    <div class="archive-panel project-archive" aria-label="项目列表">
+      <div class="project-grid">
+        {
+          PROJECTS.map((project) => (
+            <article class="info-card project-card">
+              <div class="project-card__top">
+                <div>
+                  <h2>{project.name}</h2>
+                  <p>{project.summary}</p>
+                </div>
+                <span class="project-status">{project.status}</span>
+              </div>
+              <div class="tags project-tags">
+                {project.stack.map((item: string) => <span>{item}</span>)}
+              </div>
+              <div class="project-links">
+                {project.links.map((link) => (
+                  <a href={link.href}>{link.label}</a>
+                ))}
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </div>
   </section>
 </BaseLayout>

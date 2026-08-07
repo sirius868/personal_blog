@@ -1,4 +1,4 @@
----
+﻿---
 import { AUTHOR_ROLE, SITE_DESCRIPTION, SITE_NAV, SITE_TITLE } from '../consts';
 
 interface Props {
@@ -18,10 +18,12 @@ const pathname = Astro.url.pathname;
     <meta name="description" content={description} />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/brand-mark.png" />
+    <link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href="/rss.xml" />
     <title>{pageTitle}</title>
   </head>
   <body>
     <canvas id="ambient-field" aria-hidden="true"></canvas>
+    <canvas id="click-spark-field" aria-hidden="true"></canvas>
     <header class="site-header">
       <a class="brand" href="/" aria-label={SITE_TITLE}>
         <span class="brand-mark">
@@ -52,9 +54,9 @@ const pathname = Astro.url.pathname;
 
       if (canvas && ctx && !reduceMotion.matches) {
         const colors = [
-          'rgba(167, 139, 250, 0.42)',
-          'rgba(216, 180, 254, 0.26)',
-          'rgba(129, 140, 248, 0.2)'
+          'rgba(253, 224, 71, 0.24)',
+          'rgba(251, 191, 36, 0.22)',
+          'rgba(251, 146, 60, 0.16)'
         ];
         const pointer = {
           x: window.innerWidth * 0.62,
@@ -73,7 +75,7 @@ const pathname = Astro.url.pathname;
         let particles = [];
 
         function resize() {
-          dpr = Math.min(window.devicePixelRatio || 1, 2.75);
+          dpr = Math.min(window.devicePixelRatio || 1, 3.25);
           width = window.innerWidth;
           height = window.innerHeight;
           canvas.width = Math.floor(width * dpr);
@@ -82,14 +84,15 @@ const pathname = Astro.url.pathname;
           canvas.style.height = `${height}px`;
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-          const count = Math.min(260, Math.max(120, Math.floor((width * height) / 7200)));
+          const count = Math.min(360, Math.max(150, Math.floor((width * height) / 5400)));
           particles = Array.from({ length: count }, (_, index) => ({
             x: Math.random() * width,
             y: Math.random() * height,
             vx: 0,
             vy: 0,
-            radius: 1.2 + Math.random() * 3.6,
-            halo: 12 + Math.random() * 34,
+            radius: 1 + Math.random() * 2.1,
+            halo: 6 + Math.random() * 18,
+            depth: 0.4 + Math.random() * 1.3,
             hue: index % colors.length,
             phase: Math.random() * Math.PI * 2
           }));
@@ -110,11 +113,11 @@ const pathname = Astro.url.pathname;
         }
 
         function render() {
-          frame += 0.0038;
+          frame += 0.0036;
           ctx.globalCompositeOperation = 'source-over';
-          ctx.fillStyle = 'rgba(7, 7, 17, 0.2)';
+          ctx.fillStyle = 'rgba(246, 244, 239, 0.18)';
           ctx.fillRect(0, 0, width, height);
-          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalCompositeOperation = 'source-over';
 
           const idleX = width * (0.58 + Math.sin(frame * 0.62) * 0.07);
           const idleY = height * (0.42 + Math.cos(frame * 0.48) * 0.06);
@@ -125,15 +128,15 @@ const pathname = Astro.url.pathname;
             const dx = p.x - attractX;
             const dy = p.y - attractY;
             const distance = Math.hypot(dx, dy) || 1;
-            const influence = Math.max(0, 1 - distance / 520);
-            const swirl = Math.sin(frame * 1.35 + p.phase + distance * 0.008) * 0.1;
+            const influence = Math.max(0, 1 - distance / 560) * p.depth;
+            const swirl = Math.sin(frame * 1.35 + p.phase + distance * 0.008) * 0.08;
 
-            p.vx += -dy / distance * influence * 0.026 + pointer.vx * influence * 0.0012;
-            p.vy += dx / distance * influence * 0.026 + pointer.vy * influence * 0.0012;
-            p.vx += Math.sin(frame + p.phase) * 0.0025 + swirl * 0.0025;
-            p.vy += Math.cos(frame * 0.9 + p.phase) * 0.0025 - swirl * 0.0025;
-            p.vx *= 0.962;
-            p.vy *= 0.962;
+            p.vx += (-dy / distance) * influence * 0.018 + pointer.vx * influence * 0.0009;
+            p.vy += (dx / distance) * influence * 0.018 + pointer.vy * influence * 0.0009;
+            p.vx += Math.sin(frame + p.phase) * 0.002 + swirl * 0.002;
+            p.vy += Math.cos(frame * 0.9 + p.phase) * 0.002 - swirl * 0.002;
+            p.vx *= 0.964;
+            p.vy *= 0.964;
             p.x += p.vx;
             p.y += p.vy;
 
@@ -142,18 +145,18 @@ const pathname = Astro.url.pathname;
             if (p.y < -180) p.y = height + 180;
             if (p.y > height + 180) p.y = -180;
 
-            const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.halo);
+            const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.halo * p.depth);
             gradient.addColorStop(0, colors[p.hue]);
-            gradient.addColorStop(0.28, colors[p.hue].replace(/0\.\d+\)/, '0.075)'));
-            gradient.addColorStop(1, 'rgba(7, 7, 17, 0)');
+            gradient.addColorStop(0.2, colors[p.hue].replace(/0\.\d+\)/, '0.035)'));
+            gradient.addColorStop(1, 'rgba(246, 244, 239, 0)');
             ctx.fillStyle = gradient;
             ctx.beginPath();
-            ctx.arc(p.x, p.y, p.halo, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, p.halo * p.depth, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.fillStyle = colors[p.hue].replace(/0\.\d+\)/, '0.72)');
+            ctx.fillStyle = colors[p.hue].replace(/0\.\d+\)/, '0.78)');
             ctx.beginPath();
-            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, p.radius * p.depth, 0, Math.PI * 2);
             ctx.fill();
           }
 
@@ -171,6 +174,98 @@ const pathname = Astro.url.pathname;
         requestAnimationFrame(render);
       }
     </script>
+    <script is:inline>
+      (() => {
+        const sparkCanvas = document.getElementById('click-spark-field');
+        const sparkCtx = sparkCanvas instanceof HTMLCanvasElement ? sparkCanvas.getContext('2d') : null;
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+        if (!sparkCanvas || !sparkCtx || reduceMotion.matches) return;
+
+        let width = 0;
+        let height = 0;
+        let dpr = 1;
+        let sparks = [];
+        let frame = 0;
+
+        const config = {
+          color: 'rgba(17, 17, 17, 0.62)',
+          count: 7,
+          size: 9,
+          radius: 20,
+          duration: 360,
+          lineWidth: 1.6
+        };
+
+        function resizeSparkCanvas() {
+          dpr = Math.min(window.devicePixelRatio || 1, 3);
+          width = window.innerWidth;
+          height = window.innerHeight;
+          sparkCanvas.width = Math.floor(width * dpr);
+          sparkCanvas.height = Math.floor(height * dpr);
+          sparkCanvas.style.width = `${width}px`;
+          sparkCanvas.style.height = `${height}px`;
+          sparkCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function addSpark(event) {
+          const now = performance.now();
+          for (let i = 0; i < config.count; i += 1) {
+            sparks.push({
+              x: event.clientX,
+              y: event.clientY,
+              angle: (Math.PI * 2 * i) / config.count,
+              start: now
+            });
+          }
+        }
+
+        function easeOut(value) {
+          return value * (2 - value);
+        }
+
+        function drawSparks(now) {
+          sparkCtx.clearRect(0, 0, width, height);
+          sparks = sparks.filter((spark) => {
+            const progress = Math.min(1, (now - spark.start) / config.duration);
+            if (progress >= 1) return false;
+
+            const eased = easeOut(progress);
+            const distance = eased * config.radius;
+            const lineLength = config.size * (1 - eased);
+            const x1 = spark.x + distance * Math.cos(spark.angle);
+            const y1 = spark.y + distance * Math.sin(spark.angle);
+            const x2 = spark.x + (distance + lineLength) * Math.cos(spark.angle);
+            const y2 = spark.y + (distance + lineLength) * Math.sin(spark.angle);
+
+            sparkCtx.globalAlpha = 1 - progress;
+            sparkCtx.strokeStyle = config.color;
+            sparkCtx.lineWidth = config.lineWidth;
+            sparkCtx.lineCap = 'round';
+            sparkCtx.beginPath();
+            sparkCtx.moveTo(x1, y1);
+            sparkCtx.lineTo(x2, y2);
+            sparkCtx.stroke();
+            return true;
+          });
+
+          sparkCtx.globalAlpha = 1;
+          frame = requestAnimationFrame(drawSparks);
+        }
+
+        resizeSparkCanvas();
+        window.addEventListener('resize', resizeSparkCanvas, { passive: true });
+        window.addEventListener('pointerdown', addSpark, { passive: true });
+        frame = requestAnimationFrame(drawSparks);
+        window.addEventListener(
+          'beforeunload',
+          () => {
+            cancelAnimationFrame(frame);
+          },
+          { once: true }
+        );
+      })();
+    </script>
   </body>
 </html>
 
@@ -178,18 +273,18 @@ const pathname = Astro.url.pathname;
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700;800;900&display=swap');
 
   :root {
-    color-scheme: dark;
-    --bg: #070711;
-    --panel: #111020;
-    --panel-2: #18162b;
-    --text: #eef2f5;
-    --muted: #9ca8b4;
-    --faint: #66727f;
-    --line: #29243f;
-    --accent: #a78bfa;
-    --accent-2: #d8b4fe;
-    --danger: #ff8d8d;
-    --shadow: 0 22px 80px rgba(0, 0, 0, 0.22);
+    color-scheme: light;
+    --bg: #f6f4ef;
+    --panel: #ffffff;
+    --panel-2: #edf4f3;
+    --text: #1d1b22;
+    --muted: #66737a;
+    --faint: #8b969b;
+    --line: #d8e3e1;
+    --accent: #0f766e;
+    --accent-2: #0e7490;
+    --danger: #d95555;
+    --shadow: 0 24px 80px rgba(31, 53, 59, 0.12);
     --font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
     --font-body: Inter, "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
@@ -202,21 +297,32 @@ const pathname = Astro.url.pathname;
 
   html {
     background: var(--bg);
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-x: clip;
     scroll-behavior: smooth;
     scroll-padding-top: 84px;
   }
 
-  html[data-path="/"] {
+  html[data-path="/"],
+  html[data-path="/about/"],
+  html[data-path="/projects/"] {
     scroll-snap-type: y mandatory;
   }
 
   body {
     position: relative;
     margin: 0;
+    width: 100%;
+    max-width: 100%;
     min-height: 100vh;
+    overflow-x: hidden;
+    overflow-x: clip;
     background:
-      radial-gradient(circle at 50% 0%, rgba(167, 139, 250, 0.1), transparent 28rem),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 22rem),
+      radial-gradient(circle at 50% -8%, rgba(253, 224, 71, 0.12), transparent 30rem),
+      radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.78), transparent 24rem),
+      linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(237, 244, 243, 0.66) 44%, rgba(246, 244, 239, 0.98)),
       var(--bg);
     color: var(--text);
     -webkit-font-smoothing: antialiased;
@@ -230,23 +336,33 @@ const pathname = Astro.url.pathname;
     pointer-events: none;
     content: "";
     background-image:
-      linear-gradient(rgba(167, 139, 250, 0.026) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(216, 180, 254, 0.018) 1px, transparent 1px);
-    background-size: 52px 52px;
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.78), transparent 74%);
+      linear-gradient(rgba(15, 118, 110, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(100, 116, 139, 0.035) 1px, transparent 1px);
+    background-size: 54px 54px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.56), transparent 76%);
   }
 
   #ambient-field {
     position: fixed;
     inset: 0;
+    max-width: 100vw;
     z-index: 0;
     pointer-events: none;
-    filter: saturate(1.08);
-    opacity: 0.82;
+    filter: saturate(1.04);
+    opacity: 0.9;
+  }
+
+  #click-spark-field {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    max-width: 100vw;
+    pointer-events: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    #ambient-field {
+    #ambient-field,
+    #click-spark-field {
       display: none;
     }
   }
@@ -261,6 +377,7 @@ const pathname = Astro.url.pathname;
     position: relative;
     z-index: 2;
     width: min(1120px, calc(100% - 32px));
+    max-width: 100%;
     margin: 0 auto;
   }
 
@@ -283,12 +400,12 @@ const pathname = Astro.url.pathname;
     left: 50%;
     z-index: -1;
     width: 100vw;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(222, 216, 232, 0.82);
     background:
-      linear-gradient(180deg, rgba(12, 11, 25, 0.84), rgba(12, 11, 25, 0.52)),
-      rgba(7, 7, 17, 0.58);
-    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.16);
-    backdrop-filter: blur(18px) saturate(1.18);
+      linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.48)),
+      rgba(246, 244, 239, 0.72);
+    box-shadow: 0 18px 44px rgba(31, 53, 59, 0.08);
+    backdrop-filter: blur(20px) saturate(1.12);
     transform: translateX(-50%);
     content: "";
   }
@@ -319,7 +436,7 @@ const pathname = Astro.url.pathname;
     width: 100%;
     height: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 0 8px rgba(216, 180, 254, 0.36));
+    filter: drop-shadow(0 8px 16px rgba(31, 53, 59, 0.16));
   }
 
   .brand-copy {
@@ -343,47 +460,59 @@ const pathname = Astro.url.pathname;
   }
 
   nav {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    background: rgba(12, 11, 25, 0.72);
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid rgba(222, 216, 232, 0.9);
+    border-radius: 10px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.58)),
+      rgba(246, 244, 239, 0.72);
     box-shadow:
-      0 10px 28px rgba(0, 0, 0, 0.18),
-      0 0 0 1px rgba(167, 139, 250, 0.05) inset;
+      0 14px 34px rgba(31, 53, 59, 0.1),
+      0 0 0 1px rgba(255, 255, 255, 0.82) inset;
     color: var(--muted);
     font-size: 14px;
+    overflow: hidden;
+    isolation: isolate;
   }
 
   nav a {
+    position: relative;
+    z-index: 1;
     min-height: 32px;
-    padding: 7px 11px;
-    border-radius: 6px;
+    padding: 7px 13px;
+    border-radius: 7px;
     border: 1px solid transparent;
+    color: var(--muted);
     transition:
       border-color 160ms ease,
       background 160ms ease,
       box-shadow 160ms ease,
-      color 160ms ease;
+      color 160ms ease,
+      transform 160ms ease;
   }
 
   nav a:hover {
-    border-color: rgba(216, 180, 254, 0.26);
-    background: rgba(255, 255, 255, 0.06);
-    color: #f8fff9;
+    border-color: rgba(15, 118, 110, 0.16);
+    background: rgba(15, 118, 110, 0.06);
+    color: var(--text);
+    transform: translateY(-1px);
   }
 
   nav a.active {
-    border-color: rgba(216, 180, 254, 0.62);
+    border-color: rgba(15, 118, 110, 0.22);
     background:
-      linear-gradient(180deg, rgba(216, 180, 254, 0.17), rgba(167, 139, 250, 0.1)),
-      rgba(24, 22, 43, 0.96);
+      radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.64), transparent 62%),
+      linear-gradient(180deg, rgba(15, 118, 110, 0.13), rgba(14, 116, 144, 0.06)),
+      rgba(255, 255, 255, 0.9);
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.08) inset,
-      0 8px 24px rgba(167, 139, 250, 0.15);
-    color: #ffffff;
+      0 0 0 1px rgba(255, 255, 255, 0.9) inset,
+      0 10px 22px rgba(15, 118, 110, 0.14);
+    color: var(--text);
+    transform: translateY(-1px);
   }
 
   h1,
@@ -420,15 +549,15 @@ const pathname = Astro.url.pathname;
     z-index: 1;
     width: min(960px, calc(100% + 10px));
     height: min(540px, calc(100% - 56px));
-    border: 1px solid rgba(216, 180, 254, 0.18);
-    border-radius: 8px;
+    border: 1px solid rgba(222, 216, 232, 0.9);
+    border-radius: 10px;
     background:
-      radial-gradient(circle at 50% 0%, rgba(167, 139, 250, 0.11), transparent 24rem),
-      linear-gradient(180deg, rgba(18, 16, 34, 0.8), rgba(10, 9, 22, 0.6));
+      radial-gradient(circle at 50% 0%, rgba(15, 118, 110, 0.08), transparent 24rem),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.54));
     box-shadow:
-      0 28px 90px rgba(0, 0, 0, 0.28),
-      0 0 0 1px rgba(255, 255, 255, 0.035) inset;
-    backdrop-filter: blur(20px) saturate(1.18);
+      0 28px 90px rgba(31, 53, 59, 0.14),
+      0 0 0 1px rgba(255, 255, 255, 0.72) inset;
+    backdrop-filter: blur(20px) saturate(1.12);
     transform: translate(-50%, -50%);
     content: "";
   }
@@ -441,7 +570,9 @@ const pathname = Astro.url.pathname;
     width: min(620px, 100%);
   }
 
-  html[data-path="/"] .hero {
+  html[data-path="/"] .hero,
+  html[data-path="/about/"] .hero,
+  html[data-path="/projects/"] .hero {
     scroll-snap-align: start;
   }
 
@@ -475,7 +606,7 @@ const pathname = Astro.url.pathname;
     font-weight: 800;
     line-height: 1.12;
     color: color-mix(in srgb, var(--text) 92%, var(--accent));
-    text-shadow: 0 12px 38px rgba(167, 139, 250, 0.12);
+    text-shadow: 0 12px 38px rgba(15, 118, 110, 0.12);
     text-wrap: balance;
   }
 
@@ -522,10 +653,11 @@ const pathname = Astro.url.pathname;
   .post-card,
   .stat,
   .info-card {
-    border: 1px solid var(--line);
+    border: 1px solid rgba(222, 216, 232, 0.9);
     border-radius: 8px;
-    background: rgba(23, 27, 32, 0.88);
+    background: rgba(255, 255, 255, 0.68);
     box-shadow: var(--shadow);
+    backdrop-filter: blur(18px) saturate(1.08);
   }
 
   .terminal-bar {
@@ -533,7 +665,7 @@ const pathname = Astro.url.pathname;
     gap: 7px;
     padding: 13px 14px;
     border-bottom: 1px solid var(--line);
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.42);
   }
 
   .terminal-bar span {
@@ -575,12 +707,17 @@ const pathname = Astro.url.pathname;
     padding: 42px 0;
   }
 
-  html[data-path="/"] .section {
-    scroll-snap-align: start;
+  .archive-section {
+    height: calc(100vh - 84px);
+    min-height: 620px;
+    justify-content: center;
+    overflow: hidden;
   }
 
-  html[data-path="/"] main > :last-child {
-    scroll-snap-align: end;
+  html[data-path="/"] .section,
+  html[data-path="/about/"] .section,
+  html[data-path="/projects/"] .section {
+    scroll-snap-align: start;
   }
 
   .section.grid {
@@ -608,28 +745,57 @@ const pathname = Astro.url.pathname;
     line-height: 1.7;
   }
 
+  .archive-panel {
+    overflow: auto;
+    max-height: min(68vh, 680px);
+    border: 1px solid rgba(222, 216, 232, 0.9);
+    border-radius: 10px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(15, 118, 110, 0.08), transparent 20rem),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.58));
+    box-shadow:
+      0 24px 70px rgba(31, 53, 59, 0.13),
+      0 0 0 1px rgba(255, 255, 255, 0.76) inset;
+    padding: 16px;
+    backdrop-filter: blur(18px) saturate(1.12);
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(15, 118, 110, 0.28) rgba(255, 255, 255, 0.62);
+  }
+
+  .archive-panel::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .archive-panel::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.62);
+    border-radius: 999px;
+  }
+
+  .archive-panel::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: rgba(15, 118, 110, 0.3);
+    background-clip: padding-box;
+  }
+
   .post-list {
     display: grid;
-    gap: 14px;
+    gap: 12px;
     padding: 0;
     list-style: none;
   }
 
   .post-card {
-    transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
-  }
-
-  .post-card:hover {
-    border-color: rgba(216, 180, 254, 0.58);
-    background: rgba(30, 36, 43, 0.94);
-    transform: translateY(-2px);
+    transition: none;
   }
 
   .post-link {
     display: grid;
-    grid-template-columns: 120px minmax(0, 1fr);
-    gap: 22px;
-    padding: 22px;
+    justify-items: center;
+    gap: 10px;
+    padding: 18px 22px;
+    text-align: center;
   }
 
   .post-date {
@@ -651,21 +817,24 @@ const pathname = Astro.url.pathname;
   .tags {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 8px;
     color: var(--muted);
     font-size: 14px;
   }
 
   .tags span {
-    border: 1px solid rgba(240, 198, 110, 0.32);
+    border: 1px solid rgba(15, 118, 110, 0.2);
     border-radius: 999px;
     padding: 4px 9px;
-    color: var(--accent-2);
+    color: var(--accent);
+    background: rgba(15, 118, 110, 0.055);
     font-size: 13px;
   }
 
   .post-description {
-    margin: 0 0 16px;
+    max-width: 680px;
+    margin: 0 0 12px;
     color: var(--muted);
     line-height: 1.7;
   }
@@ -680,6 +849,89 @@ const pathname = Astro.url.pathname;
   .stat,
   .info-card {
     padding: 18px;
+  }
+
+  .project-card {
+    display: grid;
+    gap: 12px;
+    min-height: 190px;
+    align-content: start;
+  }
+
+  .project-card__top {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .project-card__top h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+  }
+
+  .project-card__top p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .project-status {
+    flex: 0 0 auto;
+    align-self: start;
+    border: 1px solid rgba(15, 118, 110, 0.2);
+    border-radius: 999px;
+    padding: 5px 9px;
+    color: var(--accent);
+    background: rgba(15, 118, 110, 0.06);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .project-tags {
+    align-self: start;
+  }
+
+  .project-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: auto;
+  }
+
+  .project-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    border: 1px solid rgba(15, 118, 110, 0.18);
+    border-radius: 999px;
+    padding: 7px 12px;
+    background: rgba(255, 255, 255, 0.62);
+    color: var(--text);
+    font-size: 13px;
+    transition:
+      border-color 160ms ease,
+      background 160ms ease,
+      transform 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .project-links a:hover {
+    border-color: rgba(15, 118, 110, 0.36);
+    background: rgba(15, 118, 110, 0.08);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(15, 118, 110, 0.12);
+  }
+
+  .project-archive {
+    max-height: min(70vh, 720px);
+  }
+
+  .project-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    gap: 12px;
   }
 
   .stat {
@@ -706,10 +958,25 @@ const pathname = Astro.url.pathname;
   }
 
   .prose {
+    width: min(780px, 100%);
     max-width: 780px;
-    padding-top: 44px;
+    margin: 44px auto 64px;
+    border: 1px solid rgba(222, 216, 232, 0.92);
+    border-radius: 10px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(15, 118, 110, 0.07), transparent 22rem),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.66));
+    box-shadow:
+      0 28px 90px rgba(31, 53, 59, 0.14),
+      0 0 0 1px rgba(255, 255, 255, 0.78) inset;
+    padding: clamp(24px, 4vw, 44px);
+    backdrop-filter: blur(20px) saturate(1.12);
     font-size: 17px;
     line-height: 1.85;
+  }
+
+  .prose > :last-child {
+    margin-bottom: 0;
   }
 
   .back-link {
@@ -718,12 +985,12 @@ const pathname = Astro.url.pathname;
     gap: 9px;
     width: fit-content;
     margin-bottom: 24px;
-    border: 1px solid rgba(216, 180, 254, 0.24);
+    border: 1px solid rgba(15, 118, 110, 0.2);
     border-radius: 999px;
     background:
-      linear-gradient(135deg, rgba(167, 139, 250, 0.12), rgba(216, 180, 254, 0.05)),
-      rgba(23, 27, 32, 0.78);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+      linear-gradient(135deg, rgba(15, 118, 110, 0.1), rgba(14, 116, 144, 0.04)),
+      rgba(255, 255, 255, 0.74);
+    box-shadow: 0 10px 30px rgba(31, 53, 59, 0.1);
     padding: 7px 13px 7px 8px;
     color: var(--muted);
     font-size: 14px;
@@ -743,17 +1010,17 @@ const pathname = Astro.url.pathname;
     width: 24px;
     height: 24px;
     border-radius: 999px;
-    background: rgba(167, 139, 250, 0.16);
+    background: rgba(15, 118, 110, 0.1);
     color: var(--accent);
     font-size: 15px;
     line-height: 1;
   }
 
   .back-link:hover {
-    border-color: rgba(216, 180, 254, 0.66);
+    border-color: rgba(15, 118, 110, 0.4);
     background:
-      linear-gradient(135deg, rgba(167, 139, 250, 0.18), rgba(216, 180, 254, 0.07)),
-      rgba(30, 36, 43, 0.9);
+      linear-gradient(135deg, rgba(15, 118, 110, 0.14), rgba(14, 116, 144, 0.06)),
+      rgba(255, 255, 255, 0.9);
     color: var(--text);
     transform: translateX(-2px);
   }
@@ -780,8 +1047,15 @@ const pathname = Astro.url.pathname;
     overflow-x: auto;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #0d1117;
+    background: #f8f7fb;
     padding: 18px;
+  }
+
+  .prose blockquote {
+    margin: 22px 0;
+    border-left: 3px solid var(--accent);
+    padding: 4px 0 4px 16px;
+    color: var(--muted);
   }
 
   .prose pre code {
@@ -834,9 +1108,30 @@ const pathname = Astro.url.pathname;
       flex-direction: column;
     }
 
+    .archive-section {
+      min-height: calc(100vh - 84px);
+      padding: 28px 0;
+    }
+
+    .archive-panel,
+    .project-archive {
+      max-height: 62vh;
+      padding: 10px;
+    }
+
     .post-link {
-      grid-template-columns: 1fr;
+      gap: 10px;
+      padding: 18px;
+    }
+
+    .project-card__top {
+      flex-direction: column;
       gap: 12px;
+    }
+
+    .prose {
+      margin: 28px auto 42px;
+      padding: 22px;
     }
 
     .stats {

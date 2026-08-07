@@ -1,4 +1,4 @@
----
+﻿---
 import ParticleText from '../components/ParticleText.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
@@ -17,8 +17,9 @@ const posts = (await getCollection('posts'))
           text={SITE_TITLE}
           particleSize={1.95}
           density={1.55}
-          color="#fbfaff"
-          highlightColor="#f0d7ff"
+          color="#000000"
+          highlightColor="#000000"
+          glow={false}
           scatter={82}
           gatherDuration={1250}
           stagger={260}
@@ -27,64 +28,41 @@ const posts = (await getCollection('posts'))
           fontSize="clamp(4.1rem, 11vw, 8.8rem)"
           fontWeight={900}
         />
-        <p class="hero-kicker">把解决过的问题，写成可复用的判断。</p>
+        <p class="hero-kicker">把解决过的问题，</p>
+        <p class="hero-kicker">写成可复用的判断。</p>
       </div>
       <p class="hero-copy">
-        记录工程实践、源码阅读、工具流和长期技术思考。把真正解决过的问题沉淀下来，留给未来的自己快速复用。
+        记录工程实践、源码阅读、工具流和长期技术思考。把真正解决过的问题沉稳下来，留给未来的自己快速复用。
       </p>
-    </div>
-
-    <div class="hero-dashboard" aria-label="博客概览">
-      <div class="stats">
-        <div class="stat">
-          <strong>{posts.length}</strong>
-          <span>已发布文章</span>
-        </div>
-        <div class="stat">
-          <strong>{new Set(posts.flatMap((post) => post.data.tags)).size}</strong>
-          <span>主题标签</span>
-        </div>
-        <div class="stat">
-          <strong>RSS</strong>
-          <span>支持订阅</span>
-        </div>
-      </div>
-
-      <aside class="hero-panel" aria-label="当前写作系统">
-        <div class="terminal-bar"><span></span><span></span><span></span></div>
-        <div class="terminal-body">
-          <div><span class="prompt">$</span> 进入专注模式</div>
-          <div><strong>写作：</strong> 工程复盘 / 源码阅读 / 工具流</div>
-          <div><strong>技术：</strong> Astro + Markdown + RSS</div>
-        </div>
-      </aside>
     </div>
   </section>
 
-  <section class="section" aria-labelledby="latest-posts" data-scene="1">
+  <section class="section archive-section" aria-labelledby="post-archive" data-scene="1">
     <div class="section-heading">
-      <h2 id="latest-posts">最近文章</h2>
+      <h2 id="post-archive">文章归档</h2>
       <p>每篇文章都尽量保留问题背景、排查路径和最终判断，方便未来回看。</p>
     </div>
-    <ul class="post-list">
-      {
-        posts.map((post) => (
-          <li class="post-card">
-            <a class="post-link" href={`/posts/${post.slug}/`}>
-              <time class="post-date" datetime={post.data.pubDate.toISOString()}>
-                {post.data.pubDate.toLocaleDateString('zh-CN')}
-              </time>
-              <div>
-                <h2>{post.data.title}</h2>
-                <p class="post-description">{post.data.description}</p>
-                <div class="tags">
-                  {post.data.tags.map((tag: string) => <span>{tag}</span>)}
+    <div class="archive-panel" aria-label="文章列表">
+      <ul class="post-list">
+        {
+          posts.map((post) => (
+            <li class="post-card">
+              <a class="post-link" href={`/posts/${post.slug}/`}>
+                <time class="post-date" datetime={post.data.pubDate.toISOString()}>
+                  {post.data.pubDate.toLocaleDateString('zh-CN')}
+                </time>
+                <div>
+                  <h2>{post.data.title}</h2>
+                  <p class="post-description">{post.data.description}</p>
+                  <div class="tags">
+                    {post.data.tags.map((tag: string) => <span>{tag}</span>)}
+                  </div>
                 </div>
-              </div>
-            </a>
-          </li>
-        ))
-      }
-    </ul>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
   </section>
 </BaseLayout>
