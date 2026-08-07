@@ -24,53 +24,7 @@
         document.querySelector('[data-local-cms-note]')?.removeAttribute('hidden');
       }
 
-      const config = {
-          backend: {
-            name: 'github',
-            repo: 'sirius868/personal_blog',
-            branch: 'main',
-            base_url: location.origin,
-            auth_endpoint: 'api/auth'
-          },
-          local_backend: isLocal,
-          media_folder: 'public/uploads',
-          public_folder: '/uploads',
-          logo_url: '/brand-mark.png',
-          collections: [
-            {
-              name: 'posts',
-              label: '文章',
-              label_singular: '文章',
-              folder: 'src/content/posts',
-              create: true,
-              delete: true,
-              extension: 'md',
-              format: 'frontmatter',
-              slug: '{{slug}}',
-              preview_path: 'posts/{{slug}}/',
-              editor: {
-                preview: false
-              },
-              fields: [
-                { label: '标题', name: 'title', widget: 'string' },
-                { label: '摘要', name: 'description', widget: 'text' },
-                { label: '发布日期', name: 'pubDate', widget: 'date', format: 'YYYY-MM-DD' },
-                { label: '更新日期', name: 'updatedDate', widget: 'date', format: 'YYYY-MM-DD', required: false },
-                {
-                  label: '标签',
-                  name: 'tags',
-                  widget: 'list',
-                  collapsed: false,
-                  field: { label: '标签', name: 'tag', widget: 'string' }
-                },
-                { label: '草稿', name: 'draft', widget: 'boolean', default: false, required: false },
-                { label: '正文', name: 'body', widget: 'markdown' }
-              ]
-            }
-          ]
-      };
-
-      CMS.init({ config: config as any });
+      CMS.init();
     </script>
   </body>
 </html>
