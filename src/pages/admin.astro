@@ -54,7 +54,7 @@
             fields: [
               { label: '标题', name: 'title', widget: 'string' },
               { label: '摘要', name: 'description', widget: 'text' },
-              { label: '发布日期', name: 'pubDate', widget: 'date', format: 'YYYY-MM-DD' },
+              { label: '发布日期', name: 'pubDate', widget: 'date', format: 'YYYY-MM-DD', default: new Date().toISOString().split('T')[0] },
               { label: '更新日期', name: 'updatedDate', widget: 'date', format: 'YYYY-MM-DD', required: false },
               {
                 label: '标签',
