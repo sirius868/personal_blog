@@ -64,6 +64,67 @@
               { label: '草稿', name: 'draft', widget: 'boolean', default: false, required: false },
               { label: '正文', name: 'body', widget: 'markdown' }
             ]
+          },
+          {
+            name: 'projects',
+            label: '项目',
+            label_singular: '项目',
+            folder: 'src/content/projects',
+            create: true,
+            delete: true,
+            extension: 'md',
+            format: 'frontmatter',
+            slug: '{{slug}}',
+            summary: '{{name}} - {{status}}',
+            preview_path: 'projects/',
+            editor: {
+              preview: false
+            },
+            view_filters: [
+              { label: '已发布', field: 'draft', pattern: false },
+              { label: '草稿', field: 'draft', pattern: true }
+            ],
+            view_groups: [
+              { label: '状态', field: 'status' }
+            ],
+            fields: [
+              { label: '名称', name: 'name', widget: 'string' },
+              { label: '摘要', name: 'summary', widget: 'text' },
+              {
+                label: '状态',
+                name: 'status',
+                widget: 'select',
+                options: ['Active', 'Ongoing', 'Planned', 'Archived'],
+                default: 'Active'
+              },
+              {
+                label: '排序',
+                name: 'order',
+                widget: 'number',
+                value_type: 'int',
+                default: 0,
+                hint: '数字越小越靠前。'
+              },
+              {
+                label: '技术栈',
+                name: 'stack',
+                widget: 'list',
+                collapsed: false,
+                field: { label: '技术', name: 'item', widget: 'string' }
+              },
+              {
+                label: '链接',
+                name: 'links',
+                widget: 'list',
+                collapsed: false,
+                fields: [
+                  { label: '名称', name: 'label', widget: 'string' },
+                  { label: 'URL', name: 'href', widget: 'string' }
+                ]
+              },
+              { label: '草稿', name: 'draft', widget: 'boolean', default: false, required: false },
+              { label: '备注', name: 'body', widget: 'markdown', required: false }
+            ]
           }
         ]
       };

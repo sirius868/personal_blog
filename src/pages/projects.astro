@@ -1,6 +1,10 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { PROJECTS } from '../data/projects';
+
+const projects = (await getCollection('projects'))
+  .filter((project) => !project.data.draft)
+  .sort((a, b) => a.data.order - b.data.order || a.data.name.localeCompare(b.data.name, 'zh-CN'));
 ---
 
 <BaseLayout title="项目">
@@ -26,20 +30,20 @@ import { PROJECTS } from '../data/projects';
     <div class="archive-panel project-archive" aria-label="项目列表">
       <div class="project-grid">
         {
-          PROJECTS.map((project) => (
+          projects.map((project) => (
             <article class="info-card project-card">
               <div class="project-card__top">
                 <div>
-                  <h2>{project.name}</h2>
-                  <p>{project.summary}</p>
+                  <h2>{project.data.name}</h2>
+                  <p>{project.data.summary}</p>
                 </div>
-                <span class="project-status">{project.status}</span>
+                <span class="project-status">{project.data.status}</span>
               </div>
               <div class="tags project-tags">
-                {project.stack.map((item: string) => <span>{item}</span>)}
+                {project.data.stack.map((item) => <span>{item}</span>)}
               </div>
               <div class="project-links">
-                {project.links.map((link) => (
+                {project.data.links.map((link) => (
                   <a href={link.href}>{link.label}</a>
                 ))}
               </div>
