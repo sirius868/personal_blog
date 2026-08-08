@@ -1,0 +1,317 @@
+---
+interface Props {
+  dotSize?: number;
+  gap?: number;
+  baseColor?: string;
+  activeColor?: string;
+  proximity?: number;
+  speedTrigger?: number;
+  shockRadius?: number;
+  shockStrength?: number;
+  maxSpeed?: number;
+  resistance?: number;
+  returnDuration?: number;
+  baseAlpha?: number;
+  class?: string;
+}
+
+const {
+  dotSize = 16,
+  gap = 32,
+  baseColor = '#5227FF',
+  activeColor = '#5227FF',
+  proximity = 150,
+  speedTrigger = 100,
+  shockRadius = 250,
+  shockStrength = 5,
+  maxSpeed = 5000,
+  resistance = 750,
+  returnDuration = 1.5,
+  baseAlpha = 0.3,
+  class: className = ''
+} = Astro.props;
+---
+
+<section
+  class:list={['dot-grid', className]}
+  data-dot-grid
+  data-dot-size={dotSize}
+  data-gap={gap}
+  data-base-color={baseColor}
+  data-active-color={activeColor}
+  data-proximity={proximity}
+  data-speed-trigger={speedTrigger}
+  data-shock-radius={shockRadius}
+  data-shock-strength={shockStrength}
+  data-max-speed={maxSpeed}
+  data-resistance={resistance}
+  data-return-duration={returnDuration}
+  data-base-alpha={baseAlpha}
+>
+  <div class="dot-grid__wrap">
+    <canvas id="ambient-field" class="dot-grid__canvas" aria-hidden="true"></canvas>
+  </div>
+</section>
+
+<script>
+  // @ts-nocheck
+  import { gsap } from 'gsap';
+  import { InertiaPlugin } from 'gsap/InertiaPlugin';
+
+  gsap.registerPlugin(InertiaPlugin);
+
+  (() => {
+    const roots = document.querySelectorAll('[data-dot-grid]');
+    if (!roots.length) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+    const throttle = (func, limit) => {
+      let lastCall = 0;
+      return (...args) => {
+        const now = performance.now();
+        if (now - lastCall >= limit) {
+          lastCall = now;
+          func(...args);
+        }
+      };
+    };
+
+    roots.forEach((root) => {
+      const canvas = root.querySelector('canvas');
+      const ctx = canvas instanceof HTMLCanvasElement ? canvas.getContext('2d') : null;
+      if (!canvas || !ctx) return;
+
+      const options = {
+        dotSize: clamp(Number(root.dataset.dotSize) || 16, 1, 32),
+        gap: clamp(Number(root.dataset.gap) || 32, 4, 128),
+        baseColor: root.dataset.baseColor || '#5227FF',
+        activeColor: root.dataset.activeColor || '#5227FF',
+        proximity: clamp(Number(root.dataset.proximity) || 150, 24, 600),
+        speedTrigger: clamp(Number(root.dataset.speedTrigger) || 100, 0, 2000),
+        shockRadius: clamp(Number(root.dataset.shockRadius) || 250, 0, 1200),
+        shockStrength: clamp(Number(root.dataset.shockStrength) || 5, 0, 40),
+        maxSpeed: clamp(Number(root.dataset.maxSpeed) || 5000, 100, 20000),
+        resistance: clamp(Number(root.dataset.resistance) || 750, 0, 4000),
+        returnDuration: clamp(Number(root.dataset.returnDuration) || 1.5, 0.2, 8),
+        baseAlpha: clamp(Number(root.dataset.baseAlpha ?? 0.3), 0, 1)
+      };
+
+      function resolveColor(value) {
+        const probe = document.createElement('span');
+        probe.style.color = value;
+        root.appendChild(probe);
+        const resolved = getComputedStyle(probe).color;
+        probe.remove();
+        return resolved || value;
+      }
+
+      options.baseColor = resolveColor(options.baseColor);
+      options.activeColor = resolveColor(options.activeColor);
+
+      function toRgb(value) {
+        const hex = value.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+        if (hex) {
+          return { r: parseInt(hex[1], 16), g: parseInt(hex[2], 16), b: parseInt(hex[3], 16) };
+        }
+        const rgb = value.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+        if (rgb) {
+          return { r: Number(rgb[1]), g: Number(rgb[2]), b: Number(rgb[3]) };
+        }
+        return { r: 0, g: 0, b: 0 };
+      }
+
+      const baseRgb = toRgb(options.baseColor);
+      const activeRgb = toRgb(options.activeColor);
+
+      const circlePath = new Path2D();
+      circlePath.arc(0, 0, options.dotSize / 2, 0, Math.PI * 2);
+
+      const pointer = {
+        x: window.innerWidth * 0.5,
+        y: window.innerHeight * 0.35,
+        vx: 0,
+        vy: 0,
+        speed: 0,
+        lastTime: 0,
+        lastX: window.innerWidth * 0.5,
+        lastY: window.innerHeight * 0.35
+      };
+
+      let dots = [];
+      let rafId = 0;
+
+      function buildGrid() {
+        const { width, height } = canvas.getBoundingClientRect();
+        if (!width || !height) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 3.25);
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const cell = options.dotSize + options.gap;
+        const cols = Math.floor((width + options.gap) / cell);
+        const rows = Math.floor((height + options.gap) / cell);
+        const gridW = cell * cols - options.gap;
+        const gridH = cell * rows - options.gap;
+        const startX = (width - gridW) / 2 + options.dotSize / 2;
+        const startY = (height - gridH) / 2 + options.dotSize / 2;
+
+        const next = [];
+        for (let y = 0; y < rows; y++) {
+          for (let x = 0; x < cols; x++) {
+            next.push({
+              cx: startX + x * cell,
+              cy: startY + y * cell,
+              xOffset: 0,
+              yOffset: 0,
+              _inertiaApplied: false
+            });
+          }
+        }
+        dots = next;
+      }
+
+      const proxSq = options.proximity * options.proximity;
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const { x: px, y: py } = pointer;
+
+        for (const dot of dots) {
+          const ox = dot.cx + dot.xOffset;
+          const oy = dot.cy + dot.yOffset;
+          const dx = dot.cx - px;
+          const dy = dot.cy - py;
+          const dsq = dx * dx + dy * dy;
+
+          if (dsq <= proxSq) {
+            const dist = Math.sqrt(dsq);
+            const t = 1 - dist / options.proximity;
+            const r = Math.round(baseRgb.r + (activeRgb.r - baseRgb.r) * t);
+            const g = Math.round(baseRgb.g + (activeRgb.g - baseRgb.g) * t);
+            const b = Math.round(baseRgb.b + (activeRgb.b - baseRgb.b) * t);
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.globalAlpha = options.baseAlpha + (1 - options.baseAlpha) * t;
+          } else {
+            ctx.fillStyle = options.baseColor;
+            ctx.globalAlpha = options.baseAlpha;
+          }
+
+          ctx.save();
+          ctx.translate(ox, oy);
+          ctx.fill(circlePath);
+          ctx.restore();
+        }
+
+        ctx.globalAlpha = 1;
+        rafId = requestAnimationFrame(draw);
+      }
+
+      function triggerInertia(dot, pushX, pushY) {
+        if (dot._inertiaApplied) return;
+        dot._inertiaApplied = true;
+        gsap.killTweensOf(dot);
+        gsap.to(dot, {
+          inertia: { xOffset: pushX, yOffset: pushY, resistance: options.resistance },
+          onComplete: () => {
+            gsap.to(dot, {
+              xOffset: 0,
+              yOffset: 0,
+              duration: options.returnDuration,
+              ease: 'elastic.out(1,0.75)'
+            });
+            dot._inertiaApplied = false;
+          }
+        });
+      }
+
+      function onMove(event) {
+        const now = performance.now();
+        const dt = pointer.lastTime ? now - pointer.lastTime : 16;
+        let vx = ((event.clientX - pointer.lastX) / dt) * 1000;
+        let vy = ((event.clientY - pointer.lastY) / dt) * 1000;
+        let speed = Math.hypot(vx, vy);
+        if (speed > options.maxSpeed) {
+          const scale = options.maxSpeed / speed;
+          vx *= scale;
+          vy *= scale;
+          speed = options.maxSpeed;
+        }
+        pointer.lastTime = now;
+        pointer.lastX = event.clientX;
+        pointer.lastY = event.clientY;
+        pointer.vx = vx;
+        pointer.vy = vy;
+        pointer.speed = speed;
+
+        const rect = canvas.getBoundingClientRect();
+        pointer.x = event.clientX - rect.left;
+        pointer.y = event.clientY - rect.top;
+
+        for (const dot of dots) {
+          const dist = Math.hypot(dot.cx - pointer.x, dot.cy - pointer.y);
+          if (speed > options.speedTrigger && dist < options.proximity && !dot._inertiaApplied) {
+            const pushX = dot.cx - pointer.x + vx * 0.005;
+            const pushY = dot.cy - pointer.y + vy * 0.005;
+            triggerInertia(dot, pushX, pushY);
+          }
+        }
+      }
+
+      function onClick(event) {
+        const rect = canvas.getBoundingClientRect();
+        const cx = event.clientX - rect.left;
+        const cy = event.clientY - rect.top;
+        for (const dot of dots) {
+          const dist = Math.hypot(dot.cx - cx, dot.cy - cy);
+          if (dist < options.shockRadius && !dot._inertiaApplied) {
+            const falloff = Math.max(0, 1 - dist / options.shockRadius);
+            const pushX = (dot.cx - cx) * options.shockStrength * falloff;
+            const pushY = (dot.cy - cy) * options.shockStrength * falloff;
+            triggerInertia(dot, pushX, pushY);
+          }
+        }
+      }
+
+      buildGrid();
+      draw();
+
+      window.addEventListener('resize', buildGrid, { passive: true });
+      window.addEventListener('pointermove', throttle(onMove, 50), { passive: true });
+      window.addEventListener('click', onClick);
+      window.addEventListener('beforeunload', () => cancelAnimationFrame(rafId), { once: true });
+    });
+  })();
+</script>
+
+<style>
+  .dot-grid {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .dot-grid__wrap {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  .dot-grid__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+</style>

@@ -1,4 +1,5 @@
 ﻿---
+import DotGrid from '../components/DotGrid.astro';
 import { AUTHOR_ROLE, REPO_URL, SITE_DESCRIPTION, SITE_NAV, SITE_TITLE } from '../consts';
 
 interface Props {
@@ -22,7 +23,18 @@ const pathname = Astro.url.pathname;
     <title>{pageTitle}</title>
   </head>
   <body>
-    <canvas id="ambient-field" aria-hidden="true"></canvas>
+    <DotGrid
+      dotSize={4}
+      gap={38}
+      baseColor="#0f766e"
+      activeColor="#0f766e"
+      proximity={150}
+      speedTrigger={90}
+      shockRadius={260}
+      shockStrength={4}
+      resistance={750}
+      returnDuration={1.5}
+    />
     <canvas id="click-spark-field" aria-hidden="true"></canvas>
     <header class="site-header">
       <a class="brand" href="/" aria-label={SITE_TITLE}>
@@ -53,133 +65,6 @@ const pathname = Astro.url.pathname;
     <main>
       <slot />
     </main>
-    <script is:inline>
-      const canvas = document.getElementById('ambient-field');
-      const ctx = canvas instanceof HTMLCanvasElement ? canvas.getContext('2d') : null;
-      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-      if (canvas && ctx && !reduceMotion.matches) {
-        const colors = [
-          'rgba(253, 224, 71, 0.24)',
-          'rgba(251, 191, 36, 0.22)',
-          'rgba(251, 146, 60, 0.16)'
-        ];
-        const pointer = {
-          x: window.innerWidth * 0.62,
-          y: window.innerHeight * 0.34,
-          px: window.innerWidth * 0.62,
-          py: window.innerHeight * 0.34,
-          vx: 0,
-          vy: 0,
-          active: false
-        };
-
-        let width = 0;
-        let height = 0;
-        let dpr = 1;
-        let frame = 0;
-        let particles = [];
-
-        function resize() {
-          dpr = Math.min(window.devicePixelRatio || 1, 3.25);
-          width = window.innerWidth;
-          height = window.innerHeight;
-          canvas.width = Math.floor(width * dpr);
-          canvas.height = Math.floor(height * dpr);
-          canvas.style.width = `${width}px`;
-          canvas.style.height = `${height}px`;
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-          const count = Math.min(360, Math.max(150, Math.floor((width * height) / 5400)));
-          particles = Array.from({ length: count }, (_, index) => ({
-            x: Math.random() * width,
-            y: Math.random() * height,
-            vx: 0,
-            vy: 0,
-            radius: 1 + Math.random() * 2.1,
-            halo: 6 + Math.random() * 18,
-            depth: 0.4 + Math.random() * 1.3,
-            hue: index % colors.length,
-            phase: Math.random() * Math.PI * 2
-          }));
-        }
-
-        function stir(event) {
-          pointer.px = pointer.x;
-          pointer.py = pointer.y;
-          pointer.x = event.clientX;
-          pointer.y = event.clientY;
-          pointer.vx = pointer.x - pointer.px;
-          pointer.vy = pointer.y - pointer.py;
-          pointer.active = true;
-        }
-
-        function settlePointer() {
-          pointer.active = false;
-        }
-
-        function render() {
-          frame += 0.0036;
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.fillStyle = 'rgba(246, 244, 239, 0.18)';
-          ctx.fillRect(0, 0, width, height);
-          ctx.globalCompositeOperation = 'source-over';
-
-          const idleX = width * (0.58 + Math.sin(frame * 0.62) * 0.07);
-          const idleY = height * (0.42 + Math.cos(frame * 0.48) * 0.06);
-          const attractX = pointer.active ? pointer.x : idleX;
-          const attractY = pointer.active ? pointer.y : idleY;
-
-          for (const p of particles) {
-            const dx = p.x - attractX;
-            const dy = p.y - attractY;
-            const distance = Math.hypot(dx, dy) || 1;
-            const influence = Math.max(0, 1 - distance / 560) * p.depth;
-            const swirl = Math.sin(frame * 1.35 + p.phase + distance * 0.008) * 0.08;
-
-            p.vx += (-dy / distance) * influence * 0.018 + pointer.vx * influence * 0.0009;
-            p.vy += (dx / distance) * influence * 0.018 + pointer.vy * influence * 0.0009;
-            p.vx += Math.sin(frame + p.phase) * 0.002 + swirl * 0.002;
-            p.vy += Math.cos(frame * 0.9 + p.phase) * 0.002 - swirl * 0.002;
-            p.vx *= 0.964;
-            p.vy *= 0.964;
-            p.x += p.vx;
-            p.y += p.vy;
-
-            if (p.x < -180) p.x = width + 180;
-            if (p.x > width + 180) p.x = -180;
-            if (p.y < -180) p.y = height + 180;
-            if (p.y > height + 180) p.y = -180;
-
-            const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.halo * p.depth);
-            gradient.addColorStop(0, colors[p.hue]);
-            gradient.addColorStop(0.2, colors[p.hue].replace(/0\.\d+\)/, '0.035)'));
-            gradient.addColorStop(1, 'rgba(246, 244, 239, 0)');
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.halo * p.depth, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = colors[p.hue].replace(/0\.\d+\)/, '0.78)');
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.radius * p.depth, 0, Math.PI * 2);
-            ctx.fill();
-          }
-
-          pointer.vx *= 0.62;
-          pointer.vy *= 0.62;
-          requestAnimationFrame(render);
-        }
-
-        resize();
-        window.addEventListener('resize', resize, { passive: true });
-        window.addEventListener('pointermove', stir, { passive: true });
-        window.addEventListener('pointerdown', stir, { passive: true });
-        window.addEventListener('pointerup', settlePointer, { passive: true });
-        window.addEventListener('pointerleave', settlePointer, { passive: true });
-        requestAnimationFrame(render);
-      }
-    </script>
     <script is:inline>
       (() => {
         const sparkCanvas = document.getElementById('click-spark-field');
@@ -346,16 +231,6 @@ const pathname = Astro.url.pathname;
       linear-gradient(90deg, rgba(100, 116, 139, 0.035) 1px, transparent 1px);
     background-size: 54px 54px;
     mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.56), transparent 76%);
-  }
-
-  #ambient-field {
-    position: fixed;
-    inset: 0;
-    max-width: 100vw;
-    z-index: 0;
-    pointer-events: none;
-    filter: saturate(1.04);
-    opacity: 0.9;
   }
 
   #click-spark-field {
