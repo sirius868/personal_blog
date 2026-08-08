@@ -23,6 +23,7 @@
           auth_endpoint: 'api/auth'
         },
         load_config_file: false,
+        locale: 'zh_hans',
         local_backend: location.hostname === '127.0.0.1' || location.hostname === 'localhost',
         media_folder: 'public/uploads',
         public_folder: '/uploads',
@@ -38,6 +39,7 @@
             extension: 'md',
             format: 'frontmatter',
             slug: '{{slug}}',
+            summary: '{{title}} - {{pubDate}}',
             preview_path: 'posts/{{slug}}/',
             editor: {
               preview: false
@@ -132,6 +134,8 @@
     <script>
       (async () => {
         const { default: CMS } = await import('decap-cms-app');
+        const { default: zhHans } = await import('decap-cms-locales/dist/esm/zh_Hans/index.js');
+        CMS.registerLocale('zh_hans', zhHans);
         type InitOptions = Parameters<typeof CMS.init>[0];
         const config = (window as unknown as { DECAP_CMS_CONFIG: InitOptions extends { config?: infer C } ? C : never })
           .DECAP_CMS_CONFIG;
@@ -145,5 +149,49 @@
   body {
     margin: 0;
     font-family: Inter, system-ui, sans-serif;
+  }
+
+  #nc-root,
+  #nc-root button,
+  #nc-root input,
+  #nc-root select,
+  #nc-root textarea {
+    font-family: "Noto Sans SC", "Microsoft YaHei", Inter, system-ui, sans-serif;
+  }
+
+  #nc-root a {
+    color: #0f766e;
+  }
+
+  #nc-root button {
+    border-radius: 6px;
+  }
+
+  #nc-root input,
+  #nc-root select,
+  #nc-root textarea {
+    border-radius: 6px;
+  }
+
+  #nc-root *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  #nc-root *::-webkit-scrollbar-track {
+    background: rgba(246, 244, 239, 0.6);
+    border-radius: 999px;
+  }
+
+  #nc-root *::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: rgba(15, 118, 110, 0.32);
+    background-clip: padding-box;
+  }
+
+  #nc-root *::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 118, 110, 0.5);
+    background-clip: padding-box;
   }
 </style>
