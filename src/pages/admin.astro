@@ -11,10 +11,6 @@
   </head>
   <body>
     <noscript>Decap CMS needs JavaScript enabled.</noscript>
-    <div class="local-cms-note" data-local-cms-note hidden>
-      <strong>本地编辑需要先启动 CMS 后端</strong>
-      <span>另开一个终端运行 npm.cmd run cms，再刷新这个页面。线上部署到 Vercel 后会使用 GitHub 授权登录。</span>
-    </div>
 
     <script is:inline>
       window.CMS_MANUAL_INIT = true;
@@ -71,24 +67,14 @@
           }
         ]
       };
-
-      const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
-      if (isLocal) {
-        document.querySelector('[data-local-cms-note]')?.removeAttribute('hidden');
-      }
     </script>
-    <script is:inline>
-      (function () {
-        const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/decap-cms-app@3.15.1/dist/decap-cms-app.js';
-        s.onload = function () {
-          CMS.init({ config: window.DECAP_CMS_CONFIG });
-        };
-        s.onerror = function () {
-          document.body.innerHTML =
-            '<h1 style="padding:40px;font-family:sans-serif;color:#d95555;">CMS 加载失败，请检查网络后刷新重试</h1>';
-        };
-        document.head.appendChild(s);
+    <script>
+      (async () => {
+        const { default: CMS } = await import('decap-cms-app');
+        type InitOptions = Parameters<typeof CMS.init>[0];
+        const config = (window as unknown as { DECAP_CMS_CONFIG: InitOptions extends { config?: infer C } ? C : never })
+          .DECAP_CMS_CONFIG;
+        CMS.init({ config });
       })();
     </script>
   </body>
@@ -98,32 +84,5 @@
   body {
     margin: 0;
     font-family: Inter, system-ui, sans-serif;
-  }
-
-  .local-cms-note {
-    position: fixed;
-    top: 16px;
-    left: 50%;
-    z-index: 10;
-    display: grid;
-    gap: 4px;
-    width: min(560px, calc(100% - 32px));
-    border: 1px solid rgba(15, 118, 110, 0.18);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.94);
-    box-shadow: 0 18px 48px rgba(31, 53, 59, 0.14);
-    padding: 12px 14px;
-    color: #1d1b22;
-    transform: translateX(-50%);
-  }
-
-  .local-cms-note strong {
-    font-size: 14px;
-  }
-
-  .local-cms-note span {
-    color: #66737a;
-    font-size: 13px;
-    line-height: 1.5;
   }
 </style>
