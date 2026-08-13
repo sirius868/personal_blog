@@ -1,6 +1,52 @@
-# Vercel 部署说明
+# 部署说明
 
-这个博客是 Astro 静态站点，推荐部署到 Vercel。后台编辑使用 Decap CMS + GitHub OAuth，普通访客只能浏览网站，只有能通过你的 GitHub 授权并拥有仓库写入权限的人才能保存内容。
+这个博客是 Astro 静态站点，支持部署到 Vercel 或 GitHub Pages。后台编辑使用 Decap CMS + GitHub OAuth，普通访客只能浏览网站，只有能通过你的 GitHub 授权并拥有仓库写入权限的人才能保存内容。
+
+## 部署到 GitHub Pages
+
+站点地址为 `https://sirius868.github.io/personal_blog/`。
+
+### 1. 推送代码
+
+```bash
+git push origin main
+```
+
+仓库已包含 `.github/workflows/deploy-gh-pages.yml`，推送后会自动构建并部署。工作流会自动设置构建环境变量：
+
+```text
+SITE_URL=https://sirius868.github.io/personal_blog/
+BASE_PATH=/personal_blog/
+```
+
+### 2. 开启 GitHub Pages
+
+仓库页面：
+
+```text
+Settings -> Pages
+```
+
+在 "Build and deployment" 里选择：
+
+```text
+Source: GitHub Actions
+```
+
+首次部署后即可访问：
+
+```text
+https://sirius868.github.io/personal_blog/
+```
+
+### 3. 后台登录（注意）
+
+GitHub Pages 是纯静态托管，无法运行 OAuth 代理（`api/auth`、`api/callback`），所以 `https://sirius868.github.io/personal_blog/admin/` 上**无法**通过 GitHub 授权登录 CMS。两个替代方案：
+
+1. 本地编辑：`npm run dev` + `npm run cms`，访问 `http://127.0.0.1:4321/admin/`（推荐，无需额外配置）
+2. 保留 Vercel 部署（见下文），在 Vercel 域名上继续用线上 CMS 编辑，文章会自动同步到 GitHub Pages
+
+## 部署到 Vercel
 
 ## 1. 推送代码到 GitHub
 

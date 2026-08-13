@@ -14,6 +14,7 @@
 
     <script is:inline>
       window.CMS_MANUAL_INIT = true;
+      const basePath = location.pathname.replace(/\/admin\/?$/, '');
       window.DECAP_CMS_CONFIG = {
         backend: {
           name: 'github',
@@ -26,8 +27,8 @@
         locale: 'zh_hans',
         local_backend: location.hostname === '127.0.0.1' || location.hostname === 'localhost',
         media_folder: 'public/uploads',
-        public_folder: '/uploads',
-        logo_url: '/brand-mark.png',
+        public_folder: basePath + '/uploads',
+        logo_url: basePath + '/brand-mark.png',
         collections: [
           {
             name: 'posts',
